@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,13 +25,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
-import com.fernandoyz.lottie.domain.CycleLengthValidation
 import com.fernandoyz.lottie.presentation.common.CalendarDatePickerDialog
+import com.fernandoyz.lottie.presentation.common.CycleLengthField
 import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
@@ -142,35 +139,6 @@ private fun DateField(date: LocalDate?, isInFuture: Boolean, onClick: () -> Unit
             )
         }
     }
-}
-
-@Composable
-private fun CycleLengthField(
-    input: String,
-    error: CycleLengthValidation?,
-    showWarning: Boolean,
-    onValueChange: (String) -> Unit,
-) {
-    val supportingText = when (error) {
-        CycleLengthValidation.Empty -> stringResource(R.string.setup_cycle_error_empty)
-        CycleLengthValidation.NotAWholeNumber -> stringResource(R.string.setup_cycle_error_not_number)
-        CycleLengthValidation.OutOfRange -> stringResource(R.string.setup_cycle_error_out_of_range)
-        is CycleLengthValidation.Valid, null ->
-            if (showWarning) stringResource(R.string.setup_cycle_warning_reference)
-            else stringResource(R.string.setup_cycle_hint)
-    }
-
-    OutlinedTextField(
-        value = input,
-        onValueChange = onValueChange,
-        label = { Text(stringResource(R.string.setup_cycle_label)) },
-        suffix = { Text(stringResource(R.string.setup_cycle_suffix)) },
-        supportingText = { Text(supportingText) },
-        isError = error != null,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 @Preview(showBackground = true)

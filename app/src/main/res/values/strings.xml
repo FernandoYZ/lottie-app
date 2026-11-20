@@ -59,6 +59,31 @@
     <string name="record_delete_confirm_body">Esta acción no se puede deshacer.</string>
     <string name="record_delete_error">No se pudo eliminar el registro. Inténtalo de nuevo.</string>
 
+    <!-- Estimate (STAGE_3 §2-3) -->
+    <string name="estimate_title">Próxima menstruación estimada</string>
+    <string name="estimate_range">%1$s – %2$s</string>
+    <string name="estimate_disclaimer">Estimación orientativa. No es un diagnóstico ni un método anticonceptivo.</string>
+    <string name="estimate_past">La fecha estimada ya pasó.</string>
+
+    <!-- Calendar (STAGE_3 §3) -->
+    <string name="home_open_calendar">Calendario</string>
+    <string name="calendar_title">Calendario</string>
+    <string name="calendar_previous_month">Mes anterior</string>
+    <string name="calendar_next_month">Mes siguiente</string>
+    <string name="calendar_legend_registered">Menstruación registrada</string>
+    <string name="calendar_legend_estimated">Menstruación estimada</string>
+    <string name="calendar_load_error">No se pudo cargar el calendario.</string>
+    <string name="calendar_day_registered">%1$s, menstruación registrada</string>
+    <string name="calendar_day_estimated">%1$s, menstruación estimada</string>
+
+    <!-- Settings (STAGE_3 §4) -->
+    <string name="home_open_settings">Ajustes</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_cycle_explanation">La estimación de la próxima menstruación usa esta duración.</string>
+    <string name="settings_save">Guardar</string>
+    <string name="settings_save_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
+    <string name="settings_load_error">No se pudo cargar la configuración.</string>
+
     <!-- History validation (STAGE_2 §3) -->
     <string name="history_error_start_in_future">La fecha de inicio no puede ser posterior a hoy.</string>
     <string name="history_error_end_before_start">La fecha de fin no puede ser anterior a la fecha de inicio.</string>

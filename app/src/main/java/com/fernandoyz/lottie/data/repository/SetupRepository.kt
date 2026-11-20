@@ -46,6 +46,11 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** Updates only the usual cycle length (STAGE_3 §4). */
+    suspend fun updateUsualCycleLength(days: Int) {
+        dataStore.edit { it[USUAL_CYCLE_LENGTH_DAYS] = days }
+    }
+
     /** Whether the onboarding date was already turned into the first history record (STAGE_2 §2). */
     suspend fun isHistorySeeded(): Boolean = dataStore.data.first()[HISTORY_SEEDED] ?: false
 
