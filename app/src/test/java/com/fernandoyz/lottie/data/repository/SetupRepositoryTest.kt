@@ -5,7 +5,10 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import com.fernandoyz.lottie.data.FailingDataStore
+import com.fernandoyz.lottie.data.InMemoryDataStore
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +37,6 @@ class SetupRepositoryTest {
 
     private val setup = InitialSetup(
         lastMenstruationDate = LocalDate.of(2026, 11, 2),
-        usualCycleLengthDays = 28,
     )
 
     private fun dataStoreFile(): File = File(tempFolder.root, "lottie_settings.preferences_pb")
@@ -113,5 +115,33 @@ class SetupRepositoryTest {
         repository.save(withEnd)
 
         assertEquals(withEnd, repository.initialSetup.first())
+    }
+
+    @Test
+    fun `manual cycle length is empty by default, can be set and cleared`() = runTest {
+        // In-memory store: several quick writes to a real file fail to rename on Windows hosts.
+        val repository = SetupRepository(InMemoryDataStore())
+        repository.save(setup)
+
+        assertNull(repository.manualCycleLengthDays.first())
+        repository.setManualCycleLength(31)
+        assertEquals(31, repository.manualCycleLengthDays.first())
+        repository.setManualCycleLength(null)
+        assertNull(repository.manualCycleLengthDays.first())
+        assertEquals(setup, repository.initialSetup.first())
+    }
+
+    @Test
+    fun `cycle length stored by earlier versions is read as the manual value`() = runTest {
+        val (dataStore, _) = openDataStore()
+        dataStore.edit {
+            it[longPreferencesKey("last_menstruation_epoch_day")] = setup.lastMenstruationDate.toEpochDay()
+            it[intPreferencesKey("usual_cycle_length_days")] = 29
+            it[booleanPreferencesKey("onboarding_completed")] = true
+        }
+        val repository = SetupRepository(dataStore)
+
+        assertEquals(setup, repository.initialSetup.first())
+        assertEquals(29, repository.manualCycleLengthDays.first())
     }
 }

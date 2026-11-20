@@ -18,7 +18,8 @@ import java.time.LocalDate
  * Keys (keep stable, they are the persisted format):
  * - `last_menstruation_epoch_day` (Long): [LocalDate.toEpochDay], a calendar day with no time zone.
  * - `last_menstruation_end_epoch_day` (Long, optional): end of that menstruation.
- * - `usual_cycle_length_days` (Int).
+ * - `usual_cycle_length_days` (Int, optional): manual cycle length set in Settings. Since STAGE_4 it is
+ *   no longer asked during setup; a value saved by an earlier version is kept as the manual value.
  * - `onboarding_completed` (Boolean).
  * - `history_seeded` (Boolean): the onboarding date was turned into the first history record.
  *
@@ -30,17 +31,18 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
     val initialSetup: Flow<InitialSetup?> = dataStore.data.map { preferences ->
         val completed = preferences[ONBOARDING_COMPLETED] ?: false
         val epochDay = preferences[LAST_MENSTRUATION_EPOCH_DAY]
-        val cycleLength = preferences[USUAL_CYCLE_LENGTH_DAYS]
-        if (completed && epochDay != null && cycleLength != null) {
+        if (completed && epochDay != null) {
             InitialSetup(
                 lastMenstruationDate = LocalDate.ofEpochDay(epochDay),
-                usualCycleLengthDays = cycleLength,
                 lastMenstruationEndDate = preferences[LAST_MENSTRUATION_END_EPOCH_DAY]?.let(LocalDate::ofEpochDay),
             )
         } else {
             null
         }
     }
+
+    /** Manual cycle length; null means it is learned from the history (STAGE_4 §3). */
+    val manualCycleLengthDays: Flow<Int?> = dataStore.data.map { it[USUAL_CYCLE_LENGTH_DAYS] }
 
     /** Saves all values atomically and marks the onboarding as completed. */
     suspend fun save(setup: InitialSetup) {
@@ -49,14 +51,13 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
             val end = setup.lastMenstruationEndDate
             if (end != null) preferences[LAST_MENSTRUATION_END_EPOCH_DAY] = end.toEpochDay()
             else preferences.remove(LAST_MENSTRUATION_END_EPOCH_DAY)
-            preferences[USUAL_CYCLE_LENGTH_DAYS] = setup.usualCycleLengthDays
             preferences[ONBOARDING_COMPLETED] = true
         }
     }
 
-    /** Updates only the usual cycle length (STAGE_3 §4). */
-    suspend fun updateUsualCycleLength(days: Int) {
-        dataStore.edit { it[USUAL_CYCLE_LENGTH_DAYS] = days }
+    /** Sets the manual cycle length, or removes it with null so it is learned again. */
+    suspend fun setManualCycleLength(days: Int?) {
+        dataStore.edit { if (days != null) it[USUAL_CYCLE_LENGTH_DAYS] = days else it.remove(USUAL_CYCLE_LENGTH_DAYS) }
     }
 
     /** Whether the onboarding date was already turned into the first history record (STAGE_2 §2). */

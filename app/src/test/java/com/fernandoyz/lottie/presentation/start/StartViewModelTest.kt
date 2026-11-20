@@ -26,7 +26,7 @@ class StartViewModelTest {
     @Test
     fun `completed setup skips onboarding`() = runTest {
         val repository = SetupRepository(InMemoryDataStore())
-        repository.save(InitialSetup(LocalDate.of(2026, 11, 2), 28))
+        repository.save(InitialSetup(LocalDate.of(2026, 11, 2)))
 
         val vm = StartViewModel(repository)
 

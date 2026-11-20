@@ -9,7 +9,6 @@ import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.PeriodEstimation
-import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -28,15 +27,11 @@ data class HistoryUiState(
     val loadFailed: Boolean = false,
     /** Newest first. */
     val records: List<MenstruationRecord> = emptyList(),
-    val markEndError: HistoryValidationError? = null,
-    val markEndFailed: Boolean = false,
-    /** Null without records or without a completed setup (STAGE_3 §3). */
+    /** Null without records (STAGE_3 §3). */
     val estimate: PeriodEstimate? = null,
-) {
-    /** The ongoing menstruation: only the latest record may lack an end date (STAGE_2 §3). */
-    val openRecord: MenstruationRecord? = records.firstOrNull()?.takeIf { it.endDate == null }
-}
+)
 
+/** Home: estimate and read-only history. Records are edited in the calendar (STAGE_4 §2). */
 class HistoryViewModel(
     private val repository: HistoryRepository,
     private val setupRepository: SetupRepository,
@@ -60,15 +55,13 @@ class HistoryViewModel(
         loadJob = viewModelScope.launch {
             try {
                 repository.seedInitialRecordIfNeeded()
-                combine(repository.records, setupRepository.initialSetup) { records, setup -> records to setup }
-                    .collect { (records, setup) ->
+                combine(repository.records, setupRepository.manualCycleLengthDays) { records, manual -> records to manual }
+                    .collect { (records, manual) ->
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 records = records,
-                                estimate = setup?.let { s ->
-                                    PeriodEstimation.estimate(records, s.usualCycleLengthDays, it.today)
-                                },
+                                estimate = PeriodEstimation.estimate(records, manual, it.today),
                             )
                         }
                     }
@@ -77,21 +70,6 @@ class HistoryViewModel(
             } catch (e: Exception) {
                 // Do not log the exception: it may reference personal data.
                 _uiState.update { it.copy(isLoading = false, loadFailed = true) }
-            }
-        }
-    }
-
-    fun onMarkEnd(endDate: LocalDate) {
-        val open = _uiState.value.openRecord ?: return
-        _uiState.update { it.copy(markEndError = null, markEndFailed = false) }
-        viewModelScope.launch {
-            try {
-                val error = repository.update(open.id, open.startDate, endDate, _uiState.value.today)
-                _uiState.update { it.copy(markEndError = error) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _uiState.update { it.copy(markEndFailed = true) }
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.R
@@ -20,12 +21,13 @@ import com.fernandoyz.lottie.presentation.history.HistoryUiState
 import com.fernandoyz.lottie.presentation.settings.SettingsScreen
 import com.fernandoyz.lottie.presentation.settings.SettingsUiState
 import com.fernandoyz.lottie.ui.theme.LottieTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.LocalDate
 
-/** Synthetic dates only; never real user data. */
+/** Estimate, calendar and settings screens (STAGE_3, STAGE_4). Synthetic dates only; never real user data. */
 @RunWith(AndroidJUnit4::class)
 class Stage3ScreensTest {
 
@@ -37,13 +39,14 @@ class Stage3ScreensTest {
 
     private val today = LocalDate.of(2026, 6, 15)
     private val record = MenstruationRecord(1, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4))
+    private val estimate = PeriodEstimate(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 2), isPast = false, isApproximate = false)
 
     private fun setHome(estimate: PeriodEstimate?) {
         composeRule.setContent {
             LottieTheme {
                 HistoryScreen(
                     uiState = HistoryUiState(today = today, isLoading = false, records = listOf(record), estimate = estimate),
-                    onAddRecord = {}, onOpenRecord = {}, onOpenCalendar = {}, onOpenSettings = {}, onMarkEnd = {}, onRetry = {},
+                    onOpenCalendar = {}, onOpenSettings = {}, onRetry = {},
                 )
             }
         }
@@ -51,20 +54,22 @@ class Stage3ScreensTest {
 
     @Test
     fun homeShowsEstimateWithDisclaimerAndNavigationButtons() {
-        setHome(PeriodEstimate(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 2), isPast = false))
+        setHome(estimate)
 
         composeRule.onNodeWithText(text(R.string.estimate_title)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_disclaimer)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertDoesNotExist()
         composeRule.onNodeWithText(text(R.string.home_open_calendar)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.home_open_settings)).assertIsDisplayed()
     }
 
     @Test
-    fun pastEstimateShowsNote() {
-        setHome(PeriodEstimate(LocalDate.of(2026, 6, 10), null, isPast = true))
+    fun pastAndApproximateEstimateShowNotes() {
+        setHome(estimate.copy(isPast = true, isApproximate = true))
 
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertIsDisplayed()
     }
 
     @Test
@@ -74,39 +79,64 @@ class Stage3ScreensTest {
         composeRule.onNodeWithText(text(R.string.estimate_title)).assertDoesNotExist()
     }
 
-    @Test
-    fun calendarMarksRegisteredAndEstimatedDaysWithLegend() {
+    private fun setCalendar(state: CalendarUiState, onDayTapped: (LocalDate) -> Unit = {}) {
         composeRule.setContent {
             LottieTheme {
                 CalendarScreen(
-                    uiState = CalendarUiState(
-                        today = today,
-                        isLoading = false,
-                        records = listOf(record),
-                        estimate = PeriodEstimate(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 2), false),
-                    ),
+                    uiState = state,
                     onPreviousMonth = {},
                     onNextMonth = {},
+                    onDayTapped = onDayTapped,
+                    onConfirmDelete = {},
+                    onDismissDelete = {},
                 )
             }
         }
+    }
+
+    @Test
+    fun calendarMarksRegisteredUpcomingAndEstimatedDaysWithLegend() {
+        val current = MenstruationRecord(2, LocalDate.of(2026, 6, 14), LocalDate.of(2026, 6, 17))
+        setCalendar(CalendarUiState(today = today, isLoading = false, records = listOf(record, current), estimate = estimate))
 
         composeRule.onNodeWithContentDescription(
             context.getString(R.string.calendar_day_registered, formatLongDate(LocalDate.of(2026, 6, 2))),
         ).assertExists()
         composeRule.onNodeWithContentDescription(
+            context.getString(R.string.calendar_day_upcoming, formatLongDate(LocalDate.of(2026, 6, 16))),
+        ).assertExists()
+        composeRule.onNodeWithContentDescription(
             context.getString(R.string.calendar_day_estimated, formatLongDate(LocalDate.of(2026, 6, 29))),
         ).assertExists()
-        composeRule.onNodeWithText(text(R.string.calendar_legend_registered)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.calendar_legend_estimated)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.calendar_legend_registered)).assertExists()
+        composeRule.onNodeWithText(text(R.string.calendar_legend_upcoming)).assertExists()
+        composeRule.onNodeWithText(text(R.string.calendar_legend_estimated)).assertExists()
     }
 
     @Test
-    fun settingsRejectsOutOfRangeAndAllowsValidChange() {
+    fun tappingADaySendsThatDate() {
+        var tapped: LocalDate? = null
+        setCalendar(CalendarUiState(today = today, isLoading = false), onDayTapped = { tapped = it })
+
+        composeRule.onNodeWithContentDescription(formatLongDate(LocalDate.of(2026, 6, 10))).performClick()
+
+        assertEquals(LocalDate.of(2026, 6, 10), tapped)
+    }
+
+    @Test
+    fun tappingAStartDayAsksForConfirmation() {
+        setCalendar(CalendarUiState(today = today, isLoading = false, records = listOf(record), pendingDelete = record))
+
+        composeRule.onNodeWithText(text(R.string.calendar_delete_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.calendar_delete_confirm)).assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsRejectsOutOfRange() {
         composeRule.setContent {
             LottieTheme {
                 SettingsScreen(
-                    uiState = SettingsUiState(isLoading = false, savedCycleLengthDays = 28, cycleLengthInput = "100"),
+                    uiState = SettingsUiState(isLoading = false, cycleLengthInput = "100"),
                     onCycleLengthChanged = {},
                     onSave = {},
                 )
@@ -118,17 +148,18 @@ class Stage3ScreensTest {
     }
 
     @Test
-    fun settingsAllowsSavingAValidNewValue() {
+    fun settingsShowsLearnedLengthAndAllowsSavingAManualValue() {
         composeRule.setContent {
             LottieTheme {
                 SettingsScreen(
-                    uiState = SettingsUiState(isLoading = false, savedCycleLengthDays = 28, cycleLengthInput = "30"),
+                    uiState = SettingsUiState(isLoading = false, learnedCycleLengthDays = 29, learnedIsDefault = false, cycleLengthInput = "30"),
                     onCycleLengthChanged = {},
                     onSave = {},
                 )
             }
         }
 
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.settings_cycle_learned, 29, 29)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.settings_save)).assertIsEnabled()
     }
 }

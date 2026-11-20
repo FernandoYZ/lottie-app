@@ -24,7 +24,7 @@ class HistoryRepositoryTest {
     private val setupRepository = SetupRepository(InMemoryDataStore())
     private val repository = HistoryRepository(dao, setupRepository)
 
-    private suspend fun completeSetup() = setupRepository.save(InitialSetup(setupDate, 28))
+    private suspend fun completeSetup() = setupRepository.save(InitialSetup(setupDate))
 
     @Test
     fun `initial record is created from the setup without end date`() = runTest {
@@ -111,7 +111,7 @@ class HistoryRepositoryTest {
 
     @Test
     fun `initial record keeps the end date from the setup`() = runTest {
-        setupRepository.save(InitialSetup(setupDate, 28, setupDate.plusDays(3)))
+        setupRepository.save(InitialSetup(setupDate, setupDate.plusDays(3)))
 
         repository.seedInitialRecordIfNeeded()
 

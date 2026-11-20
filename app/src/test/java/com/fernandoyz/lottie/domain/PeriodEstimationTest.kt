@@ -16,75 +16,53 @@ class PeriodEstimationTest {
 
     @Test
     fun `no records means no estimate`() {
-        assertNull(PeriodEstimation.estimate(emptyList(), usualCycleLengthDays = 28, today = today))
+        assertNull(PeriodEstimation.estimate(emptyList(), manualCycleLengthDays = null, today = today))
     }
 
     @Test
-    fun `start is latest start plus declared cycle length`() {
+    fun `a single record uses the 28 and 6 day defaults and is approximate`() {
+        // Its end is after today (auto-filled), so it does not count as a finished duration yet.
+        val records = listOf(MenstruationRecord(1, day(6, 1), day(6, 20)))
+
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = null, today = today)!!
+
+        assertEquals(day(6, 29), estimate.start)
+        assertEquals(day(7, 4), estimate.end)
+        assertTrue(estimate.isApproximate)
+    }
+
+    @Test
+    fun `with two or more starts the cycle adapts to the recorded intervals`() {
         val records = listOf(
-            MenstruationRecord(1, day(5, 1), day(5, 4)),
-            MenstruationRecord(2, day(6, 1), day(6, 4)),
+            MenstruationRecord(1, day(4, 20), day(4, 23)), // 4 days
+            MenstruationRecord(2, day(5, 20), day(5, 23)), // 30 days later, 4 days
         )
 
-        val estimate = PeriodEstimation.estimate(records, usualCycleLengthDays = 28, today = today)
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = null, today = today)!!
 
-        assertEquals(day(6, 29), estimate?.start)
+        assertEquals(day(6, 19), estimate.start)
+        assertEquals(day(6, 22), estimate.end)
+        assertFalse(estimate.isApproximate)
     }
 
     @Test
-    fun `end uses mean duration of records with end, counting both days`() {
+    fun `a manual cycle length wins over the computed one`() {
         val records = listOf(
-            MenstruationRecord(1, day(5, 1), day(5, 4)), // 4 days
-            MenstruationRecord(2, day(6, 1), day(6, 4)), // 4 days
+            MenstruationRecord(1, day(4, 20), day(4, 23)),
+            MenstruationRecord(2, day(5, 20), day(5, 23)),
         )
 
-        val estimate = PeriodEstimation.estimate(records, usualCycleLengthDays = 28, today = today)
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = 26, today = today)!!
 
-        assertEquals(day(7, 2), estimate?.end) // 29/06 + 4 - 1
-    }
-
-    @Test
-    fun `mean duration rounds half up`() {
-        val records = listOf(
-            MenstruationRecord(1, day(4, 1), day(4, 4)), // 4 days
-            MenstruationRecord(2, day(5, 1), day(5, 5)), // 5 days -> mean 4.5 -> 5
-            MenstruationRecord(3, day(6, 1), null),
-        )
-
-        val estimate = PeriodEstimation.estimate(records, usualCycleLengthDays = 30, today = today)
-
-        assertEquals(day(7, 1), estimate?.start)
-        assertEquals(day(7, 5), estimate?.end)
-    }
-
-    @Test
-    fun `open latest record is the base and has no duration`() {
-        val records = listOf(
-            MenstruationRecord(1, day(5, 1), day(5, 3)), // 3 days
-            MenstruationRecord(2, day(6, 12), null),
-        )
-
-        val estimate = PeriodEstimation.estimate(records, usualCycleLengthDays = 28, today = today)
-
-        assertEquals(day(7, 10), estimate?.start)
-        assertEquals(day(7, 12), estimate?.end)
-    }
-
-    @Test
-    fun `no end estimate when no record has an end`() {
-        val records = listOf(MenstruationRecord(1, day(6, 12), null))
-
-        val estimate = PeriodEstimation.estimate(records, usualCycleLengthDays = 28, today = today)
-
-        assertEquals(day(7, 10), estimate?.start)
-        assertNull(estimate?.end)
+        assertEquals(day(6, 15), estimate.start)
+        assertFalse(estimate.isApproximate)
     }
 
     @Test
     fun `estimate on or before today's start is not past, after it is past`() {
         val records = listOf(MenstruationRecord(1, day(5, 18), day(5, 21)))
 
-        assertFalse(PeriodEstimation.estimate(records, 28, today = day(6, 15))!!.isPast) // start 15/06
-        assertTrue(PeriodEstimation.estimate(records, 28, today = day(6, 16))!!.isPast)
+        assertFalse(PeriodEstimation.estimate(records, null, today = day(6, 15))!!.isPast) // start 15/06
+        assertTrue(PeriodEstimation.estimate(records, null, today = day(6, 16))!!.isPast)
     }
 }

@@ -7,8 +7,12 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.domain.CalendarEditing
 import com.fernandoyz.lottie.domain.CalendarMarks
+import com.fernandoyz.lottie.domain.CycleStatistics
+import com.fernandoyz.lottie.domain.DayAction
 import com.fernandoyz.lottie.domain.DayMark
+import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.PeriodEstimation
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
@@ -30,13 +34,21 @@ data class CalendarUiState(
     val loadFailed: Boolean = false,
     val records: List<MenstruationRecord> = emptyList(),
     val estimate: PeriodEstimate? = null,
+    /** Record waiting for delete confirmation after its start day was tapped. */
+    val pendingDelete: MenstruationRecord? = null,
+    val rejection: HistoryValidationError? = null,
+    val writeFailed: Boolean = false,
+    val isWriting: Boolean = false,
 ) {
     val marks: Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
+
+    /** Days filled when a start is tapped: adapts to the history, 6 by default (STAGE_4 §3). */
+    val periodLengthDays: Int = CycleStatistics.periodLengthDays(records, today)
 }
 
-/** Read-only month calendar (STAGE_3 §3). */
+/** Month calendar where menstruations are registered by tapping days (STAGE_4 §2). */
 class CalendarViewModel(
-    historyRepository: HistoryRepository,
+    private val historyRepository: HistoryRepository,
     setupRepository: SetupRepository,
     clock: Clock,
 ) : ViewModel() {
@@ -47,13 +59,13 @@ class CalendarViewModel(
     init {
         viewModelScope.launch {
             try {
-                combine(historyRepository.records, setupRepository.initialSetup) { records, setup -> records to setup }
-                    .collect { (records, setup) ->
+                combine(historyRepository.records, setupRepository.manualCycleLengthDays) { records, manual -> records to manual }
+                    .collect { (records, manual) ->
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 records = records,
-                                estimate = setup?.let { s -> PeriodEstimation.estimate(records, s.usualCycleLengthDays, it.today) },
+                                estimate = PeriodEstimation.estimate(records, manual, it.today),
                             )
                         }
                     }
@@ -69,6 +81,47 @@ class CalendarViewModel(
     fun onPreviousMonth() = _uiState.update { it.copy(month = it.month.minusMonths(1)) }
 
     fun onNextMonth() = _uiState.update { it.copy(month = it.month.plusMonths(1)) }
+
+    fun onDayTapped(date: LocalDate) {
+        val state = _uiState.value
+        if (state.isLoading || state.loadFailed || state.isWriting || state.pendingDelete != null) return
+        _uiState.update { it.copy(rejection = null, writeFailed = false) }
+
+        when (val action = CalendarEditing.actionFor(date, state.records, state.today, state.periodLengthDays)) {
+            is DayAction.Add -> write { historyRepository.add(action.start, action.end, state.today) }
+            is DayAction.ChangeEnd -> write {
+                historyRepository.update(action.record.id, action.record.startDate, action.newEnd, state.today)
+            }
+            is DayAction.Delete -> _uiState.update { it.copy(pendingDelete = action.record) }
+            DayAction.StartInFuture -> _uiState.update { it.copy(rejection = HistoryValidationError.StartInFuture) }
+        }
+    }
+
+    fun onConfirmDelete() {
+        val record = _uiState.value.pendingDelete ?: return
+        _uiState.update { it.copy(pendingDelete = null) }
+        write {
+            historyRepository.delete(record.id)
+            null
+        }
+    }
+
+    fun onDismissDelete() = _uiState.update { it.copy(pendingDelete = null) }
+
+    private fun write(block: suspend () -> HistoryValidationError?) {
+        _uiState.update { it.copy(isWriting = true) }
+        viewModelScope.launch {
+            try {
+                val error = block()
+                _uiState.update { it.copy(isWriting = false, rejection = error) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Do not log the exception: it may reference personal data.
+                _uiState.update { it.copy(isWriting = false, writeFailed = true) }
+            }
+        }
+    }
 
     companion object {
         fun factory(

@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -75,6 +76,14 @@ fun SettingsScreen(
     ) {
         Text(text = stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineMedium)
         Text(text = stringResource(R.string.settings_cycle_explanation), style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = if (uiState.learnedIsDefault) {
+                pluralStringResource(R.plurals.settings_cycle_learned_default, uiState.learnedCycleLengthDays, uiState.learnedCycleLengthDays)
+            } else {
+                pluralStringResource(R.plurals.settings_cycle_learned, uiState.learnedCycleLengthDays, uiState.learnedCycleLengthDays)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+        )
 
         CycleLengthField(
             input = uiState.cycleLengthInput,
@@ -106,7 +115,7 @@ fun SettingsScreen(
 private fun SettingsScreenPreview() {
     LottieTheme {
         SettingsScreen(
-            uiState = SettingsUiState(isLoading = false, savedCycleLengthDays = 28, cycleLengthInput = "31"),
+            uiState = SettingsUiState(isLoading = false, learnedCycleLengthDays = 29, learnedIsDefault = false, cycleLengthInput = "31"),
             onCycleLengthChanged = {},
             onSave = {},
         )

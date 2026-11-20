@@ -30,7 +30,7 @@ class CalendarMarksTest {
 
     @Test
     fun `estimate marks days from estimated start to end`() {
-        val estimate = PeriodEstimate(start = day(6, 20), end = day(6, 23), isPast = false)
+        val estimate = PeriodEstimate(start = day(6, 20), end = day(6, 23), isPast = false, isApproximate = false)
 
         val marks = CalendarMarks.marksFor(june, emptyList(), estimate, today)
 
@@ -38,15 +38,23 @@ class CalendarMarksTest {
     }
 
     @Test
-    fun `estimate without end marks only its start`() {
-        val estimate = PeriodEstimate(start = day(6, 20), end = null, isPast = false)
+    fun `registered days after today are upcoming`() {
+        val marks = CalendarMarks.marksFor(june, listOf(MenstruationRecord(1, day(6, 14), day(6, 17))), null, today)
 
-        assertEquals(mapOf(day(6, 20) to DayMark.Estimated), CalendarMarks.marksFor(june, emptyList(), estimate, today))
+        assertEquals(
+            mapOf(
+                day(6, 14) to DayMark.Registered,
+                day(6, 15) to DayMark.Registered,
+                day(6, 16) to DayMark.Upcoming,
+                day(6, 17) to DayMark.Upcoming,
+            ),
+            marks,
+        )
     }
 
     @Test
     fun `registered days win over estimated days`() {
-        val estimate = PeriodEstimate(start = day(6, 3), end = day(6, 6), isPast = true)
+        val estimate = PeriodEstimate(start = day(6, 3), end = day(6, 6), isPast = true, isApproximate = false)
 
         val marks = CalendarMarks.marksFor(june, listOf(MenstruationRecord(1, day(6, 1), day(6, 4))), estimate, today)
 

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -24,32 +25,57 @@ class SettingsViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val setupDate = LocalDate.of(2026, 6, 1)
+    private val today = LocalDate.of(2026, 6, 15)
     private val repository = SetupRepository(InMemoryDataStore())
     private val history = HistoryRepository(FakeMenstruationRecordDao(), repository)
 
-    private suspend fun completeSetup(days: Int = 28) = repository.save(InitialSetup(setupDate, days))
+    private suspend fun completeSetup() = repository.save(InitialSetup(setupDate, setupDate.plusDays(3)))
 
     @Test
-    fun `current cycle length is loaded`() = runTest {
-        completeSetup(28)
+    fun `without a manual value the field is empty and the learned length is shown`() = runTest {
+        completeSetup()
+        history.add(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 5), today)
+        history.add(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4), today) // 30 days later
 
         val state = SettingsViewModel(repository, history).uiState.value
 
         assertFalse(state.isLoading)
-        assertEquals("28", state.cycleLengthInput)
-        assertFalse(state.canSave) // unchanged value
+        assertEquals("", state.cycleLengthInput)
+        assertEquals(30, state.learnedCycleLengthDays)
+        assertFalse(state.canSave) // unchanged
     }
 
     @Test
-    fun `new valid value is saved and keeps the rest of the setup`() = runTest {
-        completeSetup(28)
+    fun `learned length is the default 28 with fewer than two starts`() = runTest {
+        completeSetup()
+
+        assertEquals(28, SettingsViewModel(repository, history).uiState.value.learnedCycleLengthDays)
+    }
+
+    @Test
+    fun `manual value is saved`() = runTest {
+        completeSetup()
         val vm = SettingsViewModel(repository, history)
 
         vm.onCycleLengthChanged("31")
         vm.onSave()
 
         assertTrue(vm.uiState.value.isSaved)
-        assertEquals(InitialSetup(setupDate, 31), repository.initialSetup.first())
+        assertEquals(31, repository.manualCycleLengthDays.first())
+    }
+
+    @Test
+    fun `clearing the field goes back to the learned value`() = runTest {
+        completeSetup()
+        repository.setManualCycleLength(31)
+        val vm = SettingsViewModel(repository, history)
+        assertEquals("31", vm.uiState.value.cycleLengthInput)
+
+        vm.onCycleLengthChanged("")
+        assertNull(vm.uiState.value.cycleLengthError)
+        vm.onSave()
+
+        assertNull(repository.manualCycleLengthDays.first())
     }
 
     @Test
@@ -88,9 +114,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `cycle length not longer than the longest recorded bleeding is rejected`() = runTest {
-        completeSetup(28)
-        history.add(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 3), LocalDate.of(2026, 6, 15)) // 3 days
-        history.add(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 5), LocalDate.of(2026, 6, 15)) // 5 days
+        completeSetup()
+        history.add(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 5), today) // 5 days
         val vm = SettingsViewModel(repository, history)
 
         vm.onCycleLengthChanged("5")

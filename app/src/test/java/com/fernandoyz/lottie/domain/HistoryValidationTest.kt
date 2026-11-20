@@ -39,8 +39,8 @@ class HistoryValidationTest {
         assertEquals(HistoryValidationError.EndBeforeStart, validate(day(5, 3), day(5, 2)))
 
     @Test
-    fun `end in the future is rejected`() =
-        assertEquals(HistoryValidationError.EndInFuture, validate(day(6, 14), today.plusDays(1)))
+    fun `end in the future is accepted for auto-filled days`() =
+        assertNull(validate(today, today.plusDays(5))) // STAGE_4 rule 2
 
     // Rule 3
     @Test

@@ -1,11 +1,9 @@
 package com.fernandoyz.lottie.presentation.history
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,24 +18,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
-import com.fernandoyz.lottie.presentation.common.CalendarDatePickerDialog
-import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
@@ -46,8 +36,6 @@ import java.time.LocalDate
 @Composable
 fun HistoryRoute(
     viewModel: HistoryViewModel,
-    onAddRecord: () -> Unit,
-    onOpenRecord: (Long) -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -55,11 +43,8 @@ fun HistoryRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HistoryScreen(
         uiState = uiState,
-        onAddRecord = onAddRecord,
-        onOpenRecord = onOpenRecord,
         onOpenCalendar = onOpenCalendar,
         onOpenSettings = onOpenSettings,
-        onMarkEnd = viewModel::onMarkEnd,
         onRetry = viewModel::retry,
         modifier = modifier,
     )
@@ -68,11 +53,8 @@ fun HistoryRoute(
 @Composable
 fun HistoryScreen(
     uiState: HistoryUiState,
-    onAddRecord: () -> Unit,
-    onOpenRecord: (Long) -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenSettings: () -> Unit,
-    onMarkEnd: (LocalDate) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -92,22 +74,17 @@ fun HistoryScreen(
             Button(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
         }
 
-        else -> HistoryContent(uiState, onAddRecord, onOpenRecord, onOpenCalendar, onOpenSettings, onMarkEnd, modifier)
+        else -> HistoryContent(uiState, onOpenCalendar, onOpenSettings, modifier)
     }
 }
 
 @Composable
 private fun HistoryContent(
     uiState: HistoryUiState,
-    onAddRecord: () -> Unit,
-    onOpenRecord: (Long) -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenSettings: () -> Unit,
-    onMarkEnd: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showMarkEndPicker by rememberSaveable { mutableStateOf(false) }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(24.dp),
@@ -121,31 +98,15 @@ private fun HistoryContent(
             item { EstimateCard(estimate) }
         }
 
-        uiState.openRecord?.let { open ->
-            item {
-                OpenRecordCard(
-                    record = open,
-                    errorText = uiState.markEndError?.let { stringResource(it.messageRes()) }
-                        ?: if (uiState.markEndFailed) stringResource(R.string.history_mark_end_failed) else null,
-                    onMarkEnd = { showMarkEndPicker = true },
-                )
+        item {
+            Button(onClick = onOpenCalendar, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.home_open_calendar))
             }
         }
 
         item {
-            Button(onClick = onAddRecord, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.history_add))
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onOpenCalendar, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.home_open_calendar))
-                }
-                OutlinedButton(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.home_open_settings))
-                }
+            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.home_open_settings))
             }
         }
 
@@ -157,43 +118,27 @@ private fun HistoryContent(
             item { Text(stringResource(R.string.history_empty)) }
         } else {
             items(uiState.records, key = { it.id }) { record ->
-                RecordRow(record = record, onClick = { onOpenRecord(record.id) })
+                RecordRow(record = record, today = uiState.today)
                 HorizontalDivider()
             }
         }
-    }
-
-    val open = uiState.openRecord
-    if (showMarkEndPicker && open != null) {
-        CalendarDatePickerDialog(
-            initialDate = uiState.today,
-            minDate = open.startDate,
-            maxDate = uiState.today,
-            onDateSelected = {
-                onMarkEnd(it)
-                showMarkEndPicker = false
-            },
-            onDismiss = { showMarkEndPicker = false },
-        )
     }
 }
 
 @Composable
 private fun EstimateCard(estimate: PeriodEstimate) {
-    val end = estimate.end
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = stringResource(R.string.estimate_title), style = MaterialTheme.typography.titleMedium)
             Text(
-                text = if (end == null) {
-                    formatShortDate(estimate.start)
-                } else {
-                    stringResource(R.string.estimate_range, formatShortDate(estimate.start), formatShortDate(end))
-                },
+                text = stringResource(R.string.estimate_range, formatShortDate(estimate.start), formatShortDate(estimate.end)),
                 style = MaterialTheme.typography.bodyLarge,
             )
             if (estimate.isPast) {
                 Text(text = stringResource(R.string.estimate_past), style = MaterialTheme.typography.bodyMedium)
+            }
+            if (estimate.isApproximate) {
+                Text(text = stringResource(R.string.estimate_approximate), style = MaterialTheme.typography.bodyMedium)
             }
             Text(
                 text = stringResource(R.string.estimate_disclaimer),
@@ -205,29 +150,11 @@ private fun EstimateCard(estimate: PeriodEstimate) {
 }
 
 @Composable
-private fun OpenRecordCard(record: MenstruationRecord, errorText: String?, onMarkEnd: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.history_open_since, formatLongDate(record.startDate)))
-            OutlinedButton(onClick = onMarkEnd) { Text(stringResource(R.string.history_mark_end)) }
-            if (errorText != null) {
-                Text(
-                    text = errorText,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecordRow(record: MenstruationRecord, onClick: () -> Unit) {
+private fun RecordRow(record: MenstruationRecord, today: LocalDate) {
     val end = record.endDate
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -240,8 +167,11 @@ private fun RecordRow(record: MenstruationRecord, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
-            text = record.durationDays?.let { pluralStringResource(R.plurals.history_duration_days, it, it) }
-                ?: stringResource(R.string.history_ongoing),
+            text = when {
+                end == null -> stringResource(R.string.history_ongoing)
+                end.isAfter(today) -> stringResource(R.string.history_in_progress_until, formatShortDate(end))
+                else -> pluralStringResource(R.plurals.history_duration_days, record.durationDays!!, record.durationDays)
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -257,15 +187,13 @@ private fun HistoryScreenPreview() {
                 today = LocalDate.of(2026, 6, 15),
                 isLoading = false,
                 records = listOf(
-                    MenstruationRecord(2, LocalDate.of(2026, 6, 12), null),
+                    MenstruationRecord(2, LocalDate.of(2026, 6, 12), LocalDate.of(2026, 6, 17)),
                     MenstruationRecord(1, LocalDate.of(2026, 5, 14), LocalDate.of(2026, 5, 17)),
                 ),
+                estimate = PeriodEstimate(LocalDate.of(2026, 7, 10), LocalDate.of(2026, 7, 14), isPast = false, isApproximate = false),
             ),
-            onAddRecord = {},
-            onOpenRecord = {},
             onOpenCalendar = {},
             onOpenSettings = {},
-            onMarkEnd = {},
             onRetry = {},
         )
     }

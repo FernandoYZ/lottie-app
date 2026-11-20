@@ -6,7 +6,6 @@ import java.time.LocalDate
 enum class HistoryValidationError {
     StartInFuture,
     EndBeforeStart,
-    EndInFuture,
     Overlap,
 
     /** The candidate has no end date but a later record exists. */
@@ -34,7 +33,7 @@ object HistoryValidation {
     ): HistoryValidationError? {
         if (start.isAfter(today)) return HistoryValidationError.StartInFuture
         if (end != null && end.isBefore(start)) return HistoryValidationError.EndBeforeStart
-        if (end != null && end.isAfter(today)) return HistoryValidationError.EndInFuture
+        // An end after today is allowed: auto-filled days may be in the future (STAGE_4 rule 2).
 
         val others = existing.filter { it.id != editingId }
         if (others.any { overlaps(start, end ?: start, it.startDate, it.endDate ?: it.startDate) }) {

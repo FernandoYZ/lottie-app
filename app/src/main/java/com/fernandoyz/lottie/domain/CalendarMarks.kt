@@ -4,7 +4,13 @@ import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import java.time.LocalDate
 import java.time.YearMonth
 
-enum class DayMark { Registered, Estimated }
+enum class DayMark {
+    Registered,
+
+    /** Registered days after today: auto-filled and still expected (STAGE_4 rule 2). */
+    Upcoming,
+    Estimated,
+}
 
 /** Which days of a month the calendar marks (STAGE_3 §3-4). */
 object CalendarMarks {
@@ -17,11 +23,12 @@ object CalendarMarks {
     ): Map<LocalDate, DayMark> {
         val marks = mutableMapOf<LocalDate, DayMark>()
 
-        estimate?.let { addRange(marks, month, it.start, it.end ?: it.start, DayMark.Estimated) }
+        estimate?.let { addRange(marks, month, it.start, it.end, DayMark.Estimated) }
         // Registered days are added last so they win over estimated ones.
         records.forEach { record ->
-            // An open record is shown from its start to today.
-            addRange(marks, month, record.startDate, record.endDate ?: today, DayMark.Registered)
+            val end = record.shownEnd(today)
+            addRange(marks, month, record.startDate, minOf(end, today), DayMark.Registered)
+            addRange(marks, month, maxOf(record.startDate, today.plusDays(1)), end, DayMark.Upcoming)
         }
         return marks
     }

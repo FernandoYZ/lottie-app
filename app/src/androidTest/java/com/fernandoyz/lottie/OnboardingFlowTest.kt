@@ -5,17 +5,20 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.room.Room
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.model.InitialSetup
+import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupScreen
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupUiState
 import com.fernandoyz.lottie.presentation.start.LottieApp
@@ -34,6 +37,7 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 
+/** Synthetic dates only; never real user data. */
 @RunWith(AndroidJUnit4::class)
 class OnboardingFlowTest {
 
@@ -68,21 +72,20 @@ class OnboardingFlowTest {
     }
 
     @Test
-    fun freshInstall_showsWelcome_andStartOpensSetupWithBothFields() {
+    fun freshInstall_showsWelcome_andStartOpensCalendarSetup() {
         setApp()
 
         composeRule.onNodeWithText(text(R.string.welcome_title)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.welcome_start)).performClick()
 
         composeRule.onNodeWithText(text(R.string.setup_title)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_date_label)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_cycle_label)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_save)).assertIsNotEnabled()
+        composeRule.onNodeWithText(text(R.string.setup_calendar_instructions)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_save)).performScrollTo().assertIsNotEnabled()
     }
 
     @Test
     fun completedSetup_skipsOnboarding() {
-        runBlocking { repository.save(InitialSetup(today.minusDays(5), 28)) }
+        runBlocking { repository.save(InitialSetup(today.minusDays(5), today.minusDays(2))) }
 
         setApp()
 
@@ -91,63 +94,39 @@ class OnboardingFlowTest {
     }
 
     @Test
-    fun invalidCycleLength_showsError_andCannotConfirm() {
+    fun tappingStart_fillsSixDays_andSavingOpensHome() {
         setApp()
         composeRule.onNodeWithText(text(R.string.welcome_start)).performClick()
 
-        composeRule.onNodeWithText(text(R.string.setup_cycle_label)).performTextInput("abc")
+        composeRule.onNodeWithContentDescription(formatLongDate(LocalDate.of(2026, 11, 2))).performClick()
 
-        composeRule.onNodeWithText(text(R.string.setup_cycle_error_not_number), substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_save)).assertIsNotEnabled()
+        composeRule.onNodeWithContentDescription(
+            context.getString(R.string.calendar_day_registered, formatLongDate(LocalDate.of(2026, 11, 7))),
+        ).assertExists()
+        composeRule.onNodeWithText(text(R.string.setup_save)).performScrollTo().assertIsEnabled().performClick()
+
+        composeRule.onNodeWithText(text(R.string.home_title)).assertIsDisplayed()
     }
 
     @Test
-    fun futureDate_showsError_andCannotConfirm() {
+    fun futureStart_showsError() {
         composeRule.setContent {
             LottieTheme {
                 SetupScreen(
                     uiState = SetupUiState(
                         today = today,
-                        lastMenstruationDate = today.plusDays(1),
-                        cycleLengthInput = "28",
-                        cycleLengthEdited = true,
+                        rejection = HistoryValidationError.StartInFuture,
                     ),
-                    onDateSelected = {},
-                    onEndDateSelected = {},
-                    onEndDateCleared = {},
-                    onCycleLengthChanged = {},
+                    onPreviousMonth = {},
+                    onNextMonth = {},
+                    onDayTapped = {},
                     onConfirm = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText(text(R.string.setup_date_error_future)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_save)).assertIsNotEnabled()
-    }
-
-    @Test
-    fun cycleLengthOutsideReferenceRange_showsWarning_andCanConfirm() {
-        composeRule.setContent {
-            LottieTheme {
-                SetupScreen(
-                    uiState = SetupUiState(
-                        today = today,
-                        lastMenstruationDate = today,
-                        cycleLengthInput = "50",
-                        cycleLengthEdited = true,
-                    ),
-                    onDateSelected = {},
-                    onEndDateSelected = {},
-                    onEndDateCleared = {},
-                    onCycleLengthChanged = {},
-                    onConfirm = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText(text(R.string.setup_cycle_warning_reference), substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_cycle_hint), substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_save)).assertIsEnabled()
+        composeRule.onNodeWithText(text(R.string.history_error_start_in_future)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_save)).performScrollTo().assertIsNotEnabled()
     }
 
     @Test
@@ -155,23 +134,16 @@ class OnboardingFlowTest {
         composeRule.setContent {
             LottieTheme {
                 SetupScreen(
-                    uiState = SetupUiState(
-                        today = today,
-                        lastMenstruationDate = today,
-                        cycleLengthInput = "28",
-                        cycleLengthEdited = true,
-                        saveFailed = true,
-                    ),
-                    onDateSelected = {},
-                    onEndDateSelected = {},
-                    onEndDateCleared = {},
-                    onCycleLengthChanged = {},
+                    uiState = SetupUiState(today = today, start = today.minusDays(3), end = today, saveFailed = true),
+                    onPreviousMonth = {},
+                    onNextMonth = {},
+                    onDayTapped = {},
                     onConfirm = {},
                 )
             }
         }
 
-        composeRule.onNodeWithText(text(R.string.setup_save_error)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.setup_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_save_error)).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_title)).assertExists()
     }
 }
