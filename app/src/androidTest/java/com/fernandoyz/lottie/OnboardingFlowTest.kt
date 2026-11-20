@@ -97,7 +97,7 @@ class OnboardingFlowTest {
 
         composeRule.onNodeWithText(text(R.string.setup_cycle_label)).performTextInput("abc")
 
-        composeRule.onNodeWithText(text(R.string.setup_cycle_error_not_number)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_cycle_error_not_number), substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.setup_save)).assertIsNotEnabled()
     }
 
@@ -145,7 +145,8 @@ class OnboardingFlowTest {
             }
         }
 
-        composeRule.onNodeWithText(text(R.string.setup_cycle_warning_reference)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_cycle_warning_reference), substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_cycle_hint), substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.setup_save)).assertIsEnabled()
     }
 

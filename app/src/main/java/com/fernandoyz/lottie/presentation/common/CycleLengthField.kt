@@ -19,14 +19,16 @@ fun CycleLengthField(
     showWarning: Boolean,
     onValueChange: (String) -> Unit,
 ) {
-    val supportingText = when (error) {
+    // Error or warning first; the hint that defines cycle length is always kept below it.
+    val message = when (error) {
         CycleLengthValidation.Empty -> stringResource(R.string.setup_cycle_error_empty)
         CycleLengthValidation.NotAWholeNumber -> stringResource(R.string.setup_cycle_error_not_number)
         CycleLengthValidation.OutOfRange -> stringResource(R.string.setup_cycle_error_out_of_range)
         is CycleLengthValidation.Valid, null ->
-            if (showWarning) stringResource(R.string.setup_cycle_warning_reference)
-            else stringResource(R.string.setup_cycle_hint)
+            if (showWarning) stringResource(R.string.setup_cycle_warning_reference) else null
     }
+    val hint = stringResource(R.string.setup_cycle_hint)
+    val supportingText = if (message == null) hint else "$message\n$hint"
 
     OutlinedTextField(
         value = input,

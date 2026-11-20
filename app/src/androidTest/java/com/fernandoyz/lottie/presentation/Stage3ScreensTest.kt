@@ -113,7 +113,7 @@ class Stage3ScreensTest {
             }
         }
 
-        composeRule.onNodeWithText(text(R.string.setup_cycle_error_out_of_range)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.setup_cycle_error_out_of_range), substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.settings_save)).assertIsNotEnabled()
     }
 
