@@ -197,4 +197,18 @@ class SetupViewModelTest {
         assertNull(vm.uiState.value.endDateError)
         assertTrue(vm.uiState.value.canConfirm)
     }
+
+    @Test
+    fun `cycle length not longer than the entered bleeding cannot be confirmed`() {
+        val vm = viewModel()
+        vm.onDateSelected(today.minusDays(5))
+        vm.onEndDateSelected(today.minusDays(2)) // 4 days
+        vm.onCycleLengthChanged("4")
+
+        assertEquals(CycleLengthValidation.NotLongerThanBleeding(4), vm.uiState.value.cycleLengthError)
+        assertFalse(vm.uiState.value.canConfirm)
+
+        vm.onCycleLengthChanged("5")
+        assertTrue(vm.uiState.value.canConfirm)
+    }
 }

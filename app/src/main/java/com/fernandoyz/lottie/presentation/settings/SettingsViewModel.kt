@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CycleLengthValidation
 import com.fernandoyz.lottie.domain.SetupValidation
@@ -20,12 +21,15 @@ data class SettingsUiState(
     val isLoading: Boolean = true,
     val loadFailed: Boolean = false,
     val savedCycleLengthDays: Int? = null,
+    /** Longest recorded menstruation; the cycle length must be greater (approved 2026-11-20). */
+    val longestBleedingDays: Int? = null,
     val cycleLengthInput: String = "",
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val saveFailed: Boolean = false,
 ) {
-    private val validation: CycleLengthValidation = SetupValidation.validateCycleLength(cycleLengthInput)
+    private val validation: CycleLengthValidation =
+        SetupValidation.validateCycleLength(cycleLengthInput, longestBleedingDays)
 
     val cycleLengthError: CycleLengthValidation? = validation.takeIf { !isLoading && it !is CycleLengthValidation.Valid }
 
@@ -39,7 +43,10 @@ data class SettingsUiState(
 }
 
 /** Edits the usual cycle length used by the estimate (STAGE_3 §4). */
-class SettingsViewModel(private val repository: SetupRepository) : ViewModel() {
+class SettingsViewModel(
+    private val repository: SetupRepository,
+    private val historyRepository: HistoryRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -48,8 +55,14 @@ class SettingsViewModel(private val repository: SetupRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 val days = repository.initialSetup.first()?.usualCycleLengthDays
+                val longestBleeding = historyRepository.records.first().mapNotNull { it.durationDays }.maxOrNull()
                 _uiState.update {
-                    it.copy(isLoading = false, savedCycleLengthDays = days, cycleLengthInput = days?.toString().orEmpty())
+                    it.copy(
+                        isLoading = false,
+                        savedCycleLengthDays = days,
+                        longestBleedingDays = longestBleeding,
+                        cycleLengthInput = days?.toString().orEmpty(),
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -83,8 +96,9 @@ class SettingsViewModel(private val repository: SetupRepository) : ViewModel() {
     }
 
     companion object {
-        fun factory(repository: SetupRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer { SettingsViewModel(repository) }
-        }
+        fun factory(repository: SetupRepository, historyRepository: HistoryRepository): ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer { SettingsViewModel(repository, historyRepository) }
+            }
     }
 }

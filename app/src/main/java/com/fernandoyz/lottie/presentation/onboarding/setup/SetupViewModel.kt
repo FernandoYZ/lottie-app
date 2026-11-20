@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 enum class EndDateError { BeforeStart, InFuture }
 
@@ -31,8 +32,16 @@ data class SetupUiState(
     val isSaved: Boolean = false,
     val saveFailed: Boolean = false,
 ) {
+    /** Duration of the entered menstruation, counting both days; null without a valid end date. */
+    private val bleedingDays: Int? =
+        if (lastMenstruationDate != null && lastMenstruationEndDate != null && !lastMenstruationEndDate.isBefore(lastMenstruationDate)) {
+            ChronoUnit.DAYS.between(lastMenstruationDate, lastMenstruationEndDate).toInt() + 1
+        } else {
+            null
+        }
+
     private val cycleLengthValidation: CycleLengthValidation =
-        SetupValidation.validateCycleLength(cycleLengthInput)
+        SetupValidation.validateCycleLength(cycleLengthInput, longestBleedingDays = bleedingDays)
 
     val isDateInFuture: Boolean =
         lastMenstruationDate != null && !SetupValidation.isLastMenstruationDateValid(lastMenstruationDate, today)

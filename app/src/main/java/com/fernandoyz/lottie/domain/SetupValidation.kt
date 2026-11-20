@@ -7,6 +7,9 @@ sealed interface CycleLengthValidation {
     data object NotAWholeNumber : CycleLengthValidation
     data object OutOfRange : CycleLengthValidation
 
+    /** The cycle must be longer than the bleeding it contains (approved 2026-11-20). */
+    data class NotLongerThanBleeding(val bleedingDays: Int) : CycleLengthValidation
+
     /** Accepted value. [outsideReferenceRange] triggers an informative, non-blocking warning. */
     data class Valid(val days: Int, val outsideReferenceRange: Boolean) : CycleLengthValidation
 }
@@ -24,7 +27,11 @@ object SetupValidation {
 
     fun isLastMenstruationDateValid(date: LocalDate, today: LocalDate): Boolean = !date.isAfter(today)
 
-    fun validateCycleLength(input: String): CycleLengthValidation {
+    /**
+     * [longestBleedingDays]: longest known menstruation duration; the cycle length must be greater.
+     * Null when no duration is known yet.
+     */
+    fun validateCycleLength(input: String, longestBleedingDays: Int? = null): CycleLengthValidation {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return CycleLengthValidation.Empty
 
@@ -37,6 +44,9 @@ object SetupValidation {
             }
 
         if (days !in CYCLE_LENGTH_LIMIT_DAYS) return CycleLengthValidation.OutOfRange
+        if (longestBleedingDays != null && days <= longestBleedingDays) {
+            return CycleLengthValidation.NotLongerThanBleeding(longestBleedingDays)
+        }
         return CycleLengthValidation.Valid(days, outsideReferenceRange = days !in CYCLE_LENGTH_REFERENCE_DAYS)
     }
 }

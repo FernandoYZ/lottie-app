@@ -59,4 +59,28 @@ class SetupValidationTest {
         assertEquals(CycleLengthValidation.OutOfRange, SetupValidation.validateCycleLength("100"))
         assertEquals(CycleLengthValidation.OutOfRange, SetupValidation.validateCycleLength("99999999999"))
     }
+
+    @Test
+    fun `cycle length not longer than the bleeding is rejected`() {
+        assertEquals(
+            CycleLengthValidation.NotLongerThanBleeding(4),
+            SetupValidation.validateCycleLength("4", longestBleedingDays = 4),
+        )
+        assertEquals(
+            CycleLengthValidation.NotLongerThanBleeding(4),
+            SetupValidation.validateCycleLength("3", longestBleedingDays = 4),
+        )
+    }
+
+    @Test
+    fun `cycle length longer than the bleeding is accepted`() {
+        assertEquals(
+            CycleLengthValidation.Valid(5, outsideReferenceRange = true),
+            SetupValidation.validateCycleLength("5", longestBleedingDays = 4),
+        )
+        assertEquals(
+            CycleLengthValidation.Valid(28, outsideReferenceRange = false),
+            SetupValidation.validateCycleLength("28", longestBleedingDays = 4),
+        )
+    }
 }

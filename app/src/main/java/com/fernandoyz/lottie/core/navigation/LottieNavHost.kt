@@ -98,7 +98,7 @@ fun LottieNavHost(
         }
         composable(LottieDestinations.SETTINGS) {
             SettingsRoute(
-                viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository)),
+                viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository, historyRepository)),
                 onSaved = { navController.popBackStack() },
             )
         }

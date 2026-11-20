@@ -6,6 +6,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.fernandoyz.lottie.R
@@ -24,6 +25,11 @@ fun CycleLengthField(
         CycleLengthValidation.Empty -> stringResource(R.string.setup_cycle_error_empty)
         CycleLengthValidation.NotAWholeNumber -> stringResource(R.string.setup_cycle_error_not_number)
         CycleLengthValidation.OutOfRange -> stringResource(R.string.setup_cycle_error_out_of_range)
+        is CycleLengthValidation.NotLongerThanBleeding -> pluralStringResource(
+            R.plurals.setup_cycle_error_not_longer_than_bleeding,
+            error.bleedingDays,
+            error.bleedingDays,
+        )
         is CycleLengthValidation.Valid, null ->
             if (showWarning) stringResource(R.string.setup_cycle_warning_reference) else null
     }
