@@ -18,9 +18,13 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
 
+enum class EndDateError { BeforeStart, InFuture }
+
 data class SetupUiState(
     val today: LocalDate,
     val lastMenstruationDate: LocalDate? = null,
+    /** Optional end of the last menstruation. */
+    val lastMenstruationEndDate: LocalDate? = null,
     val cycleLengthInput: String = "",
     val cycleLengthEdited: Boolean = false,
     val isSaving: Boolean = false,
@@ -40,15 +44,23 @@ data class SetupUiState(
     val showReferenceRangeWarning: Boolean =
         (cycleLengthValidation as? CycleLengthValidation.Valid)?.outsideReferenceRange == true
 
+    /** Same rules as a history record end date (STAGE_2 §3, rule 2). */
+    val endDateError: EndDateError? = when {
+        lastMenstruationEndDate == null -> null
+        lastMenstruationDate != null && lastMenstruationEndDate.isBefore(lastMenstruationDate) -> EndDateError.BeforeStart
+        lastMenstruationEndDate.isAfter(today) -> EndDateError.InFuture
+        else -> null
+    }
+
     val canConfirm: Boolean =
-        lastMenstruationDate != null && !isDateInFuture &&
+        lastMenstruationDate != null && !isDateInFuture && endDateError == null &&
             cycleLengthValidation is CycleLengthValidation.Valid &&
             !isSaving && !isSaved
 
     internal fun toInitialSetupOrNull(): InitialSetup? {
         val date = lastMenstruationDate ?: return null
         val valid = cycleLengthValidation as? CycleLengthValidation.Valid ?: return null
-        return InitialSetup(date, valid.days)
+        return InitialSetup(date, valid.days, lastMenstruationEndDate)
     }
 }
 
@@ -62,6 +74,14 @@ class SetupViewModel(
 
     fun onDateSelected(date: LocalDate) {
         _uiState.update { it.copy(lastMenstruationDate = date, saveFailed = false) }
+    }
+
+    fun onEndDateSelected(date: LocalDate) {
+        _uiState.update { it.copy(lastMenstruationEndDate = date, saveFailed = false) }
+    }
+
+    fun onEndDateCleared() {
+        _uiState.update { it.copy(lastMenstruationEndDate = null, saveFailed = false) }
     }
 
     fun onCycleLengthChanged(input: String) {

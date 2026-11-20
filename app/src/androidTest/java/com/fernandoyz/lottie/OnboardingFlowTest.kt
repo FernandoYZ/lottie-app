@@ -113,6 +113,8 @@ class OnboardingFlowTest {
                         cycleLengthEdited = true,
                     ),
                     onDateSelected = {},
+                    onEndDateSelected = {},
+                    onEndDateCleared = {},
                     onCycleLengthChanged = {},
                     onConfirm = {},
                 )
@@ -135,6 +137,8 @@ class OnboardingFlowTest {
                         cycleLengthEdited = true,
                     ),
                     onDateSelected = {},
+                    onEndDateSelected = {},
+                    onEndDateCleared = {},
                     onCycleLengthChanged = {},
                     onConfirm = {},
                 )
@@ -158,6 +162,8 @@ class OnboardingFlowTest {
                         saveFailed = true,
                     ),
                     onDateSelected = {},
+                    onEndDateSelected = {},
+                    onEndDateCleared = {},
                     onCycleLengthChanged = {},
                     onConfirm = {},
                 )

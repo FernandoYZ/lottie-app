@@ -150,4 +150,51 @@ class SetupViewModelTest {
         assertFalse(vm.uiState.value.isSaving)
         assertTrue(vm.uiState.value.canConfirm)
     }
+
+    @Test
+    fun `optional end date is saved with the setup`() = runTest {
+        val vm = viewModel()
+        vm.onDateSelected(today.minusDays(5))
+        vm.onEndDateSelected(today.minusDays(2))
+        vm.onCycleLengthChanged("30")
+
+        vm.onConfirm()
+
+        assertEquals(InitialSetup(today.minusDays(5), 30, today.minusDays(2)), repository.initialSetup.first())
+    }
+
+    @Test
+    fun `end date before start is flagged and cannot be confirmed`() {
+        val vm = viewModel()
+        vm.onDateSelected(today.minusDays(2))
+        vm.onEndDateSelected(today.minusDays(5))
+        vm.onCycleLengthChanged("28")
+
+        assertEquals(EndDateError.BeforeStart, vm.uiState.value.endDateError)
+        assertFalse(vm.uiState.value.canConfirm)
+    }
+
+    @Test
+    fun `end date in the future is flagged and cannot be confirmed`() {
+        val vm = viewModel()
+        vm.onDateSelected(today)
+        vm.onEndDateSelected(today.plusDays(1))
+        vm.onCycleLengthChanged("28")
+
+        assertEquals(EndDateError.InFuture, vm.uiState.value.endDateError)
+        assertFalse(vm.uiState.value.canConfirm)
+    }
+
+    @Test
+    fun `end date can be cleared`() {
+        val vm = viewModel()
+        vm.onDateSelected(today)
+        vm.onEndDateSelected(today.plusDays(1))
+        vm.onCycleLengthChanged("28")
+
+        vm.onEndDateCleared()
+
+        assertNull(vm.uiState.value.endDateError)
+        assertTrue(vm.uiState.value.canConfirm)
+    }
 }

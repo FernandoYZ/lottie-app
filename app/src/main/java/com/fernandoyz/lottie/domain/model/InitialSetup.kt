@@ -9,4 +9,6 @@ import java.time.LocalDate
 data class InitialSetup(
     val lastMenstruationDate: LocalDate,
     val usualCycleLengthDays: Int,
+    /** Optional end of that menstruation (added 2026-11-20); null when unknown or ongoing. */
+    val lastMenstruationEndDate: LocalDate? = null,
 )

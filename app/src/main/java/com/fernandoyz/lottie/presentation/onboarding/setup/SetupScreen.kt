@@ -14,6 +14,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,21 +52,27 @@ fun SetupRoute(
     SetupScreen(
         uiState = uiState,
         onDateSelected = viewModel::onDateSelected,
+        onEndDateSelected = viewModel::onEndDateSelected,
+        onEndDateCleared = viewModel::onEndDateCleared,
         onCycleLengthChanged = viewModel::onCycleLengthChanged,
         onConfirm = viewModel::onConfirm,
         modifier = modifier,
     )
 }
 
+private enum class SetupPicker { Start, End }
+
 @Composable
 fun SetupScreen(
     uiState: SetupUiState,
     onDateSelected: (LocalDate) -> Unit,
+    onEndDateSelected: (LocalDate) -> Unit,
+    onEndDateCleared: () -> Unit,
     onCycleLengthChanged: (String) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var picker by rememberSaveable { mutableStateOf<SetupPicker?>(null) }
 
     Column(
         modifier = modifier
@@ -78,10 +85,25 @@ fun SetupScreen(
         Text(text = stringResource(R.string.setup_title), style = MaterialTheme.typography.headlineMedium)
 
         DateField(
-            date = uiState.lastMenstruationDate,
-            isInFuture = uiState.isDateInFuture,
-            onClick = { showDatePicker = true },
+            label = stringResource(R.string.setup_date_label),
+            value = uiState.lastMenstruationDate?.let(::formatLongDate) ?: stringResource(R.string.setup_date_select),
+            error = if (uiState.isDateInFuture) stringResource(R.string.setup_date_error_future) else null,
+            onClick = { picker = SetupPicker.Start },
         )
+
+        DateField(
+            label = stringResource(R.string.setup_end_date_label),
+            value = uiState.lastMenstruationEndDate?.let(::formatLongDate) ?: stringResource(R.string.record_end_none),
+            error = when (uiState.endDateError) {
+                EndDateError.BeforeStart -> stringResource(R.string.history_error_end_before_start)
+                EndDateError.InFuture -> stringResource(R.string.history_error_end_in_future)
+                null -> null
+            },
+            onClick = { picker = SetupPicker.End },
+        )
+        if (uiState.lastMenstruationEndDate != null) {
+            TextButton(onClick = onEndDateCleared) { Text(stringResource(R.string.record_end_clear)) }
+        }
 
         CycleLengthField(
             input = uiState.cycleLengthInput,
@@ -111,29 +133,38 @@ fun SetupScreen(
         }
     }
 
-    if (showDatePicker) {
-        CalendarDatePickerDialog(
+    when (picker) {
+        SetupPicker.Start -> CalendarDatePickerDialog(
             initialDate = uiState.lastMenstruationDate,
             maxDate = uiState.today,
             onDateSelected = {
                 onDateSelected(it)
-                showDatePicker = false
+                picker = null
             },
-            onDismiss = { showDatePicker = false },
+            onDismiss = { picker = null },
         )
+        SetupPicker.End -> CalendarDatePickerDialog(
+            initialDate = uiState.lastMenstruationEndDate ?: uiState.today,
+            minDate = uiState.lastMenstruationDate,
+            maxDate = uiState.today,
+            onDateSelected = {
+                onEndDateSelected(it)
+                picker = null
+            },
+            onDismiss = { picker = null },
+        )
+        null -> Unit
     }
 }
 
 @Composable
-private fun DateField(date: LocalDate?, isInFuture: Boolean, onClick: () -> Unit) {
+private fun DateField(label: String, value: String, error: String?, onClick: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = stringResource(R.string.setup_date_label), style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-            Text(date?.let(::formatLongDate) ?: stringResource(R.string.setup_date_select))
-        }
-        if (isInFuture) {
+        Text(text = label, style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(value) }
+        if (error != null) {
             Text(
-                text = stringResource(R.string.setup_date_error_future),
+                text = error,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -153,6 +184,8 @@ private fun SetupScreenPreview() {
                 cycleLengthEdited = true,
             ),
             onDateSelected = {},
+            onEndDateSelected = {},
+            onEndDateCleared = {},
             onCycleLengthChanged = {},
             onConfirm = {},
         )

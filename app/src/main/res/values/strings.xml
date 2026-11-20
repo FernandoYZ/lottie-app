@@ -16,6 +16,7 @@
     <string name="setup_date_label">Fecha de inicio de tu última menstruación</string>
     <string name="setup_date_select">Seleccionar fecha</string>
     <string name="setup_date_error_future">La fecha no puede ser posterior a hoy.</string>
+    <string name="setup_end_date_label">Fecha de fin de tu última menstruación (opcional)</string>
     <string name="setup_cycle_label">Duración habitual de tu ciclo</string>
     <string name="setup_cycle_suffix">días</string>
     <string name="setup_cycle_hint">Número entero de días, entre 1 y 99.</string>

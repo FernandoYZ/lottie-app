@@ -103,4 +103,15 @@ class SetupRepositoryTest {
     fun `read failure is propagated to the collector`() = runTest {
         SetupRepository(FailingDataStore(failReads = true)).initialSetup.first()
     }
+
+    @Test
+    fun `optional end date is read back`() = runTest {
+        val (dataStore, _) = openDataStore()
+        val repository = SetupRepository(dataStore)
+        val withEnd = setup.copy(lastMenstruationEndDate = LocalDate.of(2026, 11, 5))
+
+        repository.save(withEnd)
+
+        assertEquals(withEnd, repository.initialSetup.first())
+    }
 }

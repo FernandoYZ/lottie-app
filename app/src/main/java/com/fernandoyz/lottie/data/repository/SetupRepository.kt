@@ -17,6 +17,7 @@ import java.time.LocalDate
  *
  * Keys (keep stable, they are the persisted format):
  * - `last_menstruation_epoch_day` (Long): [LocalDate.toEpochDay], a calendar day with no time zone.
+ * - `last_menstruation_end_epoch_day` (Long, optional): end of that menstruation.
  * - `usual_cycle_length_days` (Int).
  * - `onboarding_completed` (Boolean).
  * - `history_seeded` (Boolean): the onboarding date was turned into the first history record.
@@ -31,7 +32,11 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
         val epochDay = preferences[LAST_MENSTRUATION_EPOCH_DAY]
         val cycleLength = preferences[USUAL_CYCLE_LENGTH_DAYS]
         if (completed && epochDay != null && cycleLength != null) {
-            InitialSetup(LocalDate.ofEpochDay(epochDay), cycleLength)
+            InitialSetup(
+                lastMenstruationDate = LocalDate.ofEpochDay(epochDay),
+                usualCycleLengthDays = cycleLength,
+                lastMenstruationEndDate = preferences[LAST_MENSTRUATION_END_EPOCH_DAY]?.let(LocalDate::ofEpochDay),
+            )
         } else {
             null
         }
@@ -41,6 +46,9 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun save(setup: InitialSetup) {
         dataStore.edit { preferences ->
             preferences[LAST_MENSTRUATION_EPOCH_DAY] = setup.lastMenstruationDate.toEpochDay()
+            val end = setup.lastMenstruationEndDate
+            if (end != null) preferences[LAST_MENSTRUATION_END_EPOCH_DAY] = end.toEpochDay()
+            else preferences.remove(LAST_MENSTRUATION_END_EPOCH_DAY)
             preferences[USUAL_CYCLE_LENGTH_DAYS] = setup.usualCycleLengthDays
             preferences[ONBOARDING_COMPLETED] = true
         }
@@ -61,6 +69,7 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
     private companion object {
         val HISTORY_SEEDED = booleanPreferencesKey("history_seeded")
         val LAST_MENSTRUATION_EPOCH_DAY = longPreferencesKey("last_menstruation_epoch_day")
+        val LAST_MENSTRUATION_END_EPOCH_DAY = longPreferencesKey("last_menstruation_end_epoch_day")
         val USUAL_CYCLE_LENGTH_DAYS = intPreferencesKey("usual_cycle_length_days")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }

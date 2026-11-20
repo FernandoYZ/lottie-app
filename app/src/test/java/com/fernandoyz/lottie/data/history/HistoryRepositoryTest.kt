@@ -108,4 +108,13 @@ class HistoryRepositoryTest {
         dao.failWrites = true
         repository.add(LocalDate.of(2026, 3, 1), null, today)
     }
+
+    @Test
+    fun `initial record keeps the end date from the setup`() = runTest {
+        setupRepository.save(InitialSetup(setupDate, 28, setupDate.plusDays(3)))
+
+        repository.seedInitialRecordIfNeeded()
+
+        assertEquals(listOf(MenstruationRecord(1, setupDate, setupDate.plusDays(3))), repository.records.first())
+    }
 }

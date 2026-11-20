@@ -24,7 +24,7 @@ class HistoryRepository(
     suspend fun getById(id: Long): MenstruationRecord? = dao.getById(id)?.toDomain()
 
     /**
-     * Turns the onboarding date into the first record, without end date (STAGE_2 §2).
+     * Turns the onboarding dates into the first record (STAGE_2 §2); the end date is optional.
      * Runs once: the flag prevents re-creating it if the user deletes it later.
      */
     suspend fun seedInitialRecordIfNeeded() {
@@ -32,7 +32,12 @@ class HistoryRepository(
         val setup = setupRepository.initialSetup.first() ?: return
         // An existing history means the record was already created before the flag was saved.
         if (dao.getAll().isEmpty()) {
-            dao.insert(MenstruationRecordEntity(startEpochDay = setup.lastMenstruationDate.toEpochDay(), endEpochDay = null))
+            dao.insert(
+                MenstruationRecordEntity(
+                    startEpochDay = setup.lastMenstruationDate.toEpochDay(),
+                    endEpochDay = setup.lastMenstruationEndDate?.toEpochDay(),
+                ),
+            )
         }
         setupRepository.markHistorySeeded()
     }
