@@ -35,7 +35,15 @@ class HistoryScreensTest {
     private fun setHistory(state: HistoryUiState, onOpen: (Long) -> Unit = {}) {
         composeRule.setContent {
             LottieTheme {
-                HistoryScreen(uiState = state, onAddRecord = {}, onOpenRecord = onOpen, onMarkEnd = {}, onRetry = {})
+                HistoryScreen(
+                    uiState = state,
+                    onAddRecord = {},
+                    onOpenRecord = onOpen,
+                    onOpenCalendar = {},
+                    onOpenSettings = {},
+                    onMarkEnd = {},
+                    onRetry = {},
+                )
             }
         }
     }

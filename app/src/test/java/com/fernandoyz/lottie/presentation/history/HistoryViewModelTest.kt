@@ -40,7 +40,7 @@ class HistoryViewModelTest {
     fun `onboarding date is shown as the open record`() = runTest {
         completeSetup()
 
-        val state = HistoryViewModel(repository, clock).uiState.value
+        val state = HistoryViewModel(repository, setupRepository, clock).uiState.value
 
         assertFalse(state.isLoading)
         assertEquals(setupDate, state.openRecord?.startDate)
@@ -52,7 +52,7 @@ class HistoryViewModelTest {
         repository.add(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5), today)
         repository.add(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 4, 6), today)
 
-        val state = HistoryViewModel(repository, clock).uiState.value
+        val state = HistoryViewModel(repository, setupRepository, clock).uiState.value
 
         assertEquals(listOf(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 3, 1)), state.records.map { it.startDate })
         assertNull(state.openRecord)
@@ -61,7 +61,7 @@ class HistoryViewModelTest {
     @Test
     fun `mark end closes the open record`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
 
         vm.onMarkEnd(LocalDate.of(2026, 6, 15))
 
@@ -72,7 +72,7 @@ class HistoryViewModelTest {
     @Test
     fun `mark end with an invalid date shows the broken rule`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
 
         vm.onMarkEnd(LocalDate.of(2026, 6, 10))
 
@@ -83,7 +83,7 @@ class HistoryViewModelTest {
     @Test
     fun `mark end write failure is reported`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
         dao.failWrites = true
 
         vm.onMarkEnd(today)
@@ -96,9 +96,50 @@ class HistoryViewModelTest {
     fun `load failure is reported`() {
         val failingRepository = HistoryRepository(dao, SetupRepository(FailingDataStore(failReads = true)))
 
-        val state = HistoryViewModel(failingRepository, clock).uiState.value
+        val state = HistoryViewModel(failingRepository, setupRepository, clock).uiState.value
 
         assertTrue(state.loadFailed)
         assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `estimate uses latest start plus declared cycle length`() = runTest {
+        completeSetup() // 12/06, cycle 28, open record
+
+        val estimate = HistoryViewModel(repository, setupRepository, clock).uiState.value.estimate
+
+        assertEquals(LocalDate.of(2026, 7, 10), estimate?.start)
+        assertNull(estimate?.end) // no record with end yet
+        assertFalse(estimate!!.isPast)
+    }
+
+    @Test
+    fun `estimate follows a changed cycle length`() = runTest {
+        completeSetup()
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        setupRepository.updateUsualCycleLength(30)
+
+        assertEquals(LocalDate.of(2026, 7, 12), vm.uiState.value.estimate?.start)
+    }
+
+    @Test
+    fun `estimate gets an end after marking the end`() = runTest {
+        completeSetup()
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.onMarkEnd(LocalDate.of(2026, 6, 15)) // 4 days
+
+        assertEquals(LocalDate.of(2026, 7, 13), vm.uiState.value.estimate?.end)
+    }
+
+    @Test
+    fun `no records means no estimate`() = runTest {
+        completeSetup()
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.uiState.value.records.forEach { repository.delete(it.id) }
+
+        assertNull(vm.uiState.value.estimate)
     }
 }

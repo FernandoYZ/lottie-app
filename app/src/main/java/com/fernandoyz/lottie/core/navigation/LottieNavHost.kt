@@ -10,6 +10,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.presentation.calendar.CalendarRoute
+import com.fernandoyz.lottie.presentation.calendar.CalendarViewModel
 import com.fernandoyz.lottie.presentation.history.HistoryRoute
 import com.fernandoyz.lottie.presentation.history.HistoryViewModel
 import com.fernandoyz.lottie.presentation.history.RecordFormRoute
@@ -17,6 +19,8 @@ import com.fernandoyz.lottie.presentation.history.RecordFormViewModel
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupRoute
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupViewModel
 import com.fernandoyz.lottie.presentation.onboarding.welcome.WelcomeScreen
+import com.fernandoyz.lottie.presentation.settings.SettingsRoute
+import com.fernandoyz.lottie.presentation.settings.SettingsViewModel
 import java.time.Clock
 
 /** Route constants (NAVIGATION.md). */
@@ -24,6 +28,8 @@ object LottieDestinations {
     const val WELCOME = "welcome"
     const val INITIAL_SETUP = "initial_setup"
     const val HOME = "home"
+    const val CALENDAR = "calendar"
+    const val SETTINGS = "settings"
 
     const val RECORD_ID_ARG = "recordId"
     const val RECORD_FORM = "record_form?$RECORD_ID_ARG={$RECORD_ID_ARG}"
@@ -61,9 +67,11 @@ fun LottieNavHost(
         }
         composable(LottieDestinations.HOME) {
             HistoryRoute(
-                viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, clock)),
+                viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)),
                 onAddRecord = { navController.navigate(LottieDestinations.recordForm()) },
                 onOpenRecord = { navController.navigate(LottieDestinations.recordForm(it)) },
+                onOpenCalendar = { navController.navigate(LottieDestinations.CALENDAR) },
+                onOpenSettings = { navController.navigate(LottieDestinations.SETTINGS) },
             )
         }
         composable(
@@ -81,6 +89,17 @@ fun LottieNavHost(
             RecordFormRoute(
                 viewModel = viewModel(factory = RecordFormViewModel.factory(historyRepository, clock, recordId)),
                 onDone = { navController.popBackStack() },
+            )
+        }
+        composable(LottieDestinations.CALENDAR) {
+            CalendarRoute(
+                viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, clock)),
+            )
+        }
+        composable(LottieDestinations.SETTINGS) {
+            SettingsRoute(
+                viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository)),
+                onSaved = { navController.popBackStack() },
             )
         }
     }
