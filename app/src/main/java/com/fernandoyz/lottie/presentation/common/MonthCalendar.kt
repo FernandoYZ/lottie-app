@@ -2,7 +2,7 @@ package com.fernandoyz.lottie.presentation.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +72,8 @@ fun MonthCalendar(
     onMonthChanged: (YearMonth) -> Unit,
     onDayClick: ((LocalDate) -> Unit)?,
     modifier: Modifier = Modifier,
+    onDayLongClick: ((LocalDate) -> Unit)? = null,
+    ovulationDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
 ) {
     val pagerState = rememberPagerState(initialPage = pageOf(initialMonth)) { PAGE_COUNT }
     val scope = rememberCoroutineScope()
@@ -99,7 +102,14 @@ fun MonthCalendar(
         WeekdayHeader()
         HorizontalPager(state = pagerState, verticalAlignment = Alignment.Top) { page ->
             val month = monthOf(page)
-            MonthGrid(month = month, marks = marksFor(month), today = today, onDayClick = onDayClick)
+            MonthGrid(
+                month = month,
+                marks = marksFor(month),
+                ovulationDays = ovulationDaysFor(month),
+                today = today,
+                onDayClick = onDayClick,
+                onDayLongClick = onDayLongClick,
+            )
         }
     }
 }
@@ -123,8 +133,10 @@ private fun WeekdayHeader() {
 private fun MonthGrid(
     month: YearMonth,
     marks: Map<LocalDate, DayMark>,
+    ovulationDays: Set<LocalDate>,
     today: LocalDate,
     onDayClick: ((LocalDate) -> Unit)?,
+    onDayLongClick: ((LocalDate) -> Unit)?,
 ) {
     val leadingBlanks = month.atDay(1).dayOfWeek.value - DayOfWeek.MONDAY.value
     val cells: List<LocalDate?> = List(leadingBlanks) { null } + (1..month.lengthOfMonth()).map(month::atDay)
@@ -139,7 +151,9 @@ private fun MonthGrid(
                                 date = date,
                                 mark = marks[date],
                                 isToday = date == today,
+                                isOvulation = date in ovulationDays,
                                 onClick = onDayClick?.let { click -> { click(date) } },
+                                onLongClick = onDayLongClick?.let { longClick -> { longClick(date) } },
                             )
                         }
                     }
@@ -151,29 +165,55 @@ private fun MonthGrid(
 }
 
 @Composable
-private fun DayCell(date: LocalDate, mark: DayMark?, isToday: Boolean, onClick: (() -> Unit)?) {
+private fun DayCell(
+    date: LocalDate,
+    mark: DayMark?,
+    isToday: Boolean,
+    isOvulation: Boolean,
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+) {
     val primary = MaterialTheme.colorScheme.primary
-    val description = when (mark) {
+    val markDescription = when (mark) {
         DayMark.Registered -> stringResource(R.string.calendar_day_registered, formatLongDate(date))
         DayMark.Upcoming -> stringResource(R.string.calendar_day_upcoming, formatLongDate(date))
         DayMark.Estimated -> stringResource(R.string.calendar_day_estimated, formatLongDate(date))
         null -> formatLongDate(date)
     }
+    val description = if (isOvulation) stringResource(R.string.calendar_day_ovulation, markDescription) else markDescription
+    val detailLabel = stringResource(R.string.calendar_day_detail_action)
+    val interactive = onClick != null || onLongClick != null
     Box(
         modifier = Modifier
             .padding(3.dp)
             .fillMaxSize()
             .dayMark(mark, primary, MaterialTheme.colorScheme.primaryContainer)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (interactive) {
+                    Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
+                } else {
+                    Modifier
+                },
+            )
             .clearAndSetSemantics {
                 contentDescription = description
                 if (onClick != null) {
                     role = Role.Button
                     onClick { onClick(); true }
                 }
+                if (onLongClick != null) onLongClick(label = detailLabel) { onLongClick(); true }
             },
         contentAlignment = Alignment.Center,
     ) {
+        if (isOvulation) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 4.dp)
+                    .size(6.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+            )
+        }
         Text(
             text = date.dayOfMonth.toString(),
             color = when (mark) {
@@ -199,7 +239,15 @@ fun CalendarLegend(modifier: Modifier = Modifier, showEstimated: Boolean = true)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LegendRow(mark = DayMark.Registered, label = stringResource(R.string.calendar_legend_registered))
         LegendRow(mark = DayMark.Upcoming, label = stringResource(R.string.calendar_legend_upcoming))
-        if (showEstimated) LegendRow(mark = DayMark.Estimated, label = stringResource(R.string.calendar_legend_estimated))
+        if (showEstimated) {
+            LegendRow(mark = DayMark.Estimated, label = stringResource(R.string.calendar_legend_estimated))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.tertiary, CircleShape))
+                }
+                Text(text = stringResource(R.string.calendar_legend_ovulation), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }
 

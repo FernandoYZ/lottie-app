@@ -9,6 +9,8 @@ import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
 import com.fernandoyz.lottie.domain.CalendarMarks
+import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CyclePhases
 import com.fernandoyz.lottie.domain.CycleStatistics
 import com.fernandoyz.lottie.domain.DayAction
 import com.fernandoyz.lottie.domain.DayMark
@@ -39,7 +41,13 @@ data class CalendarUiState(
     val rejection: HistoryValidationError? = null,
     val writeFailed: Boolean = false,
     val isWriting: Boolean = false,
+    /** Day whose detail panel is open after a long press (day-detail S1). */
+    val selectedDay: LocalDate? = null,
 ) {
+    val selectedDayInfo: CycleDayInfo? = selectedDay?.let { CyclePhases.dayInfo(it, records, estimate, today) }
+
+    fun ovulationDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.ovulationDays(month, records, estimate, today)
+
     /** Marks for any month, so the neighbour pages show them while swiping. */
     fun marksFor(month: YearMonth): Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
 
@@ -97,6 +105,13 @@ class CalendarViewModel(
             DayAction.StartInFuture -> _uiState.update { it.copy(rejection = HistoryValidationError.StartInFuture) }
         }
     }
+
+    fun onDayLongPressed(date: LocalDate) {
+        if (_uiState.value.isLoading || _uiState.value.loadFailed) return
+        _uiState.update { it.copy(selectedDay = date) }
+    }
+
+    fun onDismissDayDetail() = _uiState.update { it.copy(selectedDay = null) }
 
     fun onConfirmDelete() {
         val record = _uiState.value.pendingDelete ?: return

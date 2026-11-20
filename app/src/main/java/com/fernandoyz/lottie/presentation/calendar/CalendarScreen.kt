@@ -45,6 +45,8 @@ fun CalendarRoute(viewModel: CalendarViewModel, modifier: Modifier = Modifier) {
         onDayTapped = viewModel::onDayTapped,
         onConfirmDelete = viewModel::onConfirmDelete,
         onDismissDelete = viewModel::onDismissDelete,
+        onDayLongPressed = viewModel::onDayLongPressed,
+        onDismissDayDetail = viewModel::onDismissDayDetail,
         modifier = modifier,
     )
 }
@@ -56,6 +58,8 @@ fun CalendarScreen(
     onDayTapped: (LocalDate) -> Unit,
     onConfirmDelete: () -> Unit,
     onDismissDelete: () -> Unit,
+    onDayLongPressed: (LocalDate) -> Unit,
+    onDismissDayDetail: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (uiState.isLoading) {
@@ -88,6 +92,8 @@ fun CalendarScreen(
             today = uiState.today,
             onMonthChanged = onMonthChanged,
             onDayClick = onDayTapped,
+            onDayLongClick = onDayLongPressed,
+            ovulationDaysFor = uiState::ovulationDaysFor,
         )
 
         val message = uiState.rejection?.let { stringResource(it.messageRes()) }
@@ -112,6 +118,15 @@ fun CalendarScreen(
             dismissButton = { TextButton(onClick = onDismissDelete) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
+
+    uiState.selectedDay?.let { date ->
+        DayDetailSheet(
+            date = date,
+            mark = uiState.marksFor(YearMonth.from(date))[date],
+            info = uiState.selectedDayInfo,
+            onDismiss = onDismissDayDetail,
+        )
+    }
 }
 
 @Preview(showBackground = true)
@@ -129,6 +144,8 @@ private fun CalendarScreenPreview() {
             onDayTapped = {},
             onConfirmDelete = {},
             onDismissDelete = {},
+            onDayLongPressed = {},
+            onDismissDayDetail = {},
         )
     }
 }

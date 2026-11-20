@@ -5,6 +5,7 @@ import com.fernandoyz.lottie.data.InMemoryDataStore
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
@@ -139,6 +140,22 @@ class CalendarViewModelTest {
 
         assertEquals(DayMark.Registered, vm.uiState.value.marks[today])
         assertEquals(DayMark.Upcoming, vm.uiState.value.marks[day(6, 20)])
+    }
+
+    @Test
+    fun `long press opens the day detail with its cycle phase and changes nothing`() = runTest {
+        historyRepository.add(day(5, 18), day(5, 21), today) // next start estimated 15/06, ovulation 01/06
+        val vm = viewModel()
+
+        vm.onDayLongPressed(day(6, 1))
+
+        assertEquals(day(6, 1), vm.uiState.value.selectedDay)
+        assertEquals(CyclePhase.Ovulation, vm.uiState.value.selectedDayInfo?.phase)
+        assertEquals(setOf(day(6, 1)), vm.uiState.value.ovulationDaysFor(YearMonth.of(2026, 6)))
+        assertEquals(1, stored().size)
+
+        vm.onDismissDayDetail()
+        assertNull(vm.uiState.value.selectedDay)
     }
 
     @Test

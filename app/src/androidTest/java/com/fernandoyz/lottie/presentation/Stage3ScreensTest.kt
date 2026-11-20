@@ -11,7 +11,10 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.PeriodEstimate
+import com.fernandoyz.lottie.presentation.calendar.DayDetailContent
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.calendar.CalendarScreen
 import com.fernandoyz.lottie.presentation.calendar.CalendarUiState
@@ -88,6 +91,8 @@ class Stage3ScreensTest {
                     onDayTapped = onDayTapped,
                     onConfirmDelete = {},
                     onDismissDelete = {},
+                    onDayLongPressed = {},
+                    onDismissDayDetail = {},
                 )
             }
         }
@@ -128,6 +133,24 @@ class Stage3ScreensTest {
 
         composeRule.onNodeWithText(text(R.string.calendar_delete_title)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.calendar_delete_confirm)).assertIsDisplayed()
+    }
+
+    @Test
+    fun dayDetailShowsCycleDayPhaseAndDisclaimer() {
+        composeRule.setContent {
+            LottieTheme {
+                DayDetailContent(
+                    date = LocalDate.of(2026, 6, 15),
+                    mark = null,
+                    info = CycleDayInfo(cycleDay = 15, phase = CyclePhase.Ovulation, basedOnEstimate = true),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.getString(R.string.day_detail_cycle_day, 15)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.day_detail_phase, text(R.string.phase_ovulation))).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.day_detail_based_on_estimate)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.day_detail_disclaimer)).assertIsDisplayed()
     }
 
     @Test

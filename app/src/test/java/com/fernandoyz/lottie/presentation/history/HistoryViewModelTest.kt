@@ -6,6 +6,7 @@ import com.fernandoyz.lottie.data.InMemoryDataStore
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -97,6 +98,16 @@ class HistoryViewModelTest {
         setupRepository.setManualCycleLength(30)
 
         assertEquals(LocalDate.of(2026, 7, 1), vm.uiState.value.estimate?.start)
+    }
+
+    @Test
+    fun `today's cycle day and phase are shown`() = runTest {
+        completeSetup() // 01/06 - 04/06, next start estimated 29/06, ovulation 15/06 = today
+
+        val info = HistoryViewModel(repository, setupRepository, clock).uiState.value.todayInfo
+
+        assertEquals(15, info?.cycleDay)
+        assertEquals(CyclePhase.Ovulation, info?.phase)
     }
 
     @Test

@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Lottie</string>
 
     <!-- Start -->
@@ -75,6 +75,23 @@
     <string name="calendar_delete_title">¿Eliminar esta menstruación?</string>
     <string name="calendar_delete_body">Se eliminará la menstruación que empezó el %1$s. Esta acción no se puede deshacer.</string>
     <string name="calendar_delete_confirm">Eliminar</string>
+    <string name="calendar_legend_ovulation">Ovulación estimada</string>
+    <string name="calendar_day_ovulation">%1$s, ovulación estimada</string>
+    <string name="calendar_day_detail_action">Ver detalle del día</string>
+
+    <!-- Day detail and cycle phases (odd/tasks/day-detail.md) -->
+    <string name="phase_menstrual">Menstrual</string>
+    <string name="phase_follicular">Folicular</string>
+    <string name="phase_ovulation">Ovulación</string>
+    <string name="phase_luteal">Lútea</string>
+    <string name="day_detail_cycle_day" tools:ignore="PluralsCandidate">Día %1$d del ciclo</string>
+    <string name="day_detail_phase">Fase: %1$s</string>
+    <string name="day_detail_phase_unavailable">Fase no disponible: este ciclo es demasiado corto para calcularla.</string>
+    <string name="day_detail_based_on_estimate">Calculada con la fecha estimada de la próxima menstruación.</string>
+    <string name="day_detail_no_cycle">Todavía no hay datos del ciclo para este día.</string>
+    <string name="day_detail_disclaimer">Las fases son una aproximación del método del calendario: no son exactas con ciclos irregulares y no sirven como método anticonceptivo.</string>
+    <string name="home_today_phase" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo, fase %2$s</string>
+    <string name="home_today_cycle_day" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo</string>
 
     <!-- Settings (STAGE_4 §3) -->
     <string name="home_open_settings">Ajustes</string>

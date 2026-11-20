@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
+import com.fernandoyz.lottie.presentation.calendar.nameRes
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
@@ -92,6 +93,16 @@ private fun HistoryContent(
     ) {
         item {
             Text(text = stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
+        }
+
+        uiState.todayInfo?.let { info ->
+            item {
+                Text(
+                    text = info.phase?.let { stringResource(R.string.home_today_phase, info.cycleDay, stringResource(it.nameRes()).lowercase()) }
+                        ?: stringResource(R.string.home_today_cycle_day, info.cycleDay),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
 
         uiState.estimate?.let { estimate ->

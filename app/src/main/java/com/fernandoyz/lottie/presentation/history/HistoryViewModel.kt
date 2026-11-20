@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CyclePhases
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.PeriodEstimation
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
@@ -29,7 +31,10 @@ data class HistoryUiState(
     val records: List<MenstruationRecord> = emptyList(),
     /** Null without records (STAGE_3 §3). */
     val estimate: PeriodEstimate? = null,
-)
+) {
+    /** Today's cycle day and phase for the Home line (day-detail S6). */
+    val todayInfo: CycleDayInfo? = CyclePhases.dayInfo(today, records, estimate, today)
+}
 
 /** Home: estimate and read-only history. Records are edited in the calendar (STAGE_4 §2). */
 class HistoryViewModel(
