@@ -3,6 +3,8 @@ package com.fernandoyz.lottie.presentation.onboarding.setup
 import com.fernandoyz.lottie.MainDispatcherRule
 import com.fernandoyz.lottie.data.FailingDataStore
 import com.fernandoyz.lottie.data.InMemoryDataStore
+import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
+import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
@@ -11,7 +13,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -29,11 +30,14 @@ class SetupViewModelTest {
     private val today = LocalDate.of(2026, 11, 19)
     private val zone = ZoneId.of("America/Lima")
     private val clock = Clock.fixed(today.atStartOfDay(zone).plusHours(10).toInstant(), zone)
-    private fun day(dayOfMonth: Int) = LocalDate.of(2026, 11, dayOfMonth)
+    private fun day(month: Int, dayOfMonth: Int) = LocalDate.of(2026, month, dayOfMonth)
+    private fun day(dayOfMonth: Int) = day(11, dayOfMonth)
 
-    private val repository = SetupRepository(InMemoryDataStore())
+    private val setupRepository = SetupRepository(InMemoryDataStore())
+    private val historyRepository = HistoryRepository(FakeMenstruationRecordDao(), setupRepository)
 
-    private fun viewModel(repo: SetupRepository = repository) = SetupViewModel(repo, clock)
+    private fun viewModel(history: HistoryRepository = historyRepository) = SetupViewModel(history, clock)
+    private fun ranges(vm: SetupViewModel) = vm.uiState.value.menstruations.map { it.startDate to it.endDate }
 
     @Test
     fun `opens on the current month with nothing marked`() {
@@ -50,8 +54,7 @@ class SetupViewModelTest {
 
         vm.onDayTapped(day(2))
 
-        assertEquals(day(2), vm.uiState.value.start)
-        assertEquals(day(7), vm.uiState.value.end)
+        assertEquals(listOf(day(2) to day(7)), ranges(vm))
         assertEquals((2..7).map(::day).toSet(), vm.uiState.value.marks.keys)
         assertTrue(vm.uiState.value.canConfirm)
     }
@@ -63,29 +66,30 @@ class SetupViewModelTest {
 
         vm.onDayTapped(day(6))
 
-        assertEquals(day(5), vm.uiState.value.end)
+        assertEquals(listOf(day(2) to day(5)), ranges(vm))
     }
 
     @Test
-    fun `tapping another empty day moves the start`() {
+    fun `several menstruations can be marked and the fill adapts to them`() {
         val vm = viewModel()
+        vm.onDayTapped(day(10, 5))
+        vm.onDayTapped(day(10, 9)) // 05/10 - 08/10: 4 days
+
+        vm.onMonthChanged(YearMonth.of(2026, 11))
         vm.onDayTapped(day(2))
 
-        vm.onDayTapped(day(12))
-
-        assertEquals(day(12), vm.uiState.value.start)
-        assertEquals(day(17), vm.uiState.value.end)
+        assertEquals(listOf(day(10, 5) to day(10, 8), day(2) to day(5)), ranges(vm).sortedBy { it.first })
     }
 
     @Test
-    fun `tapping the start day clears the selection`() {
+    fun `tapping a start day removes only that menstruation`() {
         val vm = viewModel()
+        vm.onDayTapped(day(10, 5))
         vm.onDayTapped(day(2))
 
         vm.onDayTapped(day(2))
 
-        assertNull(vm.uiState.value.start)
-        assertFalse(vm.uiState.value.canConfirm)
+        assertEquals(listOf(day(10, 5) to day(10, 10)), ranges(vm))
     }
 
     @Test
@@ -104,24 +108,27 @@ class SetupViewModelTest {
         vm.onDayTapped(day(20))
 
         assertEquals(HistoryValidationError.StartInFuture, vm.uiState.value.rejection)
-        assertNull(vm.uiState.value.start)
+        assertTrue(vm.uiState.value.menstruations.isEmpty())
     }
 
     @Test
-    fun `confirm saves the marked menstruation`() = runTest {
+    fun `confirm saves every marked menstruation to the history`() = runTest {
         val vm = viewModel()
+        vm.onDayTapped(day(10, 5))
         vm.onDayTapped(day(2))
         vm.onDayTapped(day(6))
 
         vm.onConfirm()
 
         assertTrue(vm.uiState.value.isSaved)
-        assertEquals(InitialSetup(day(2), day(5)), repository.initialSetup.first())
+        assertEquals(listOf(day(2), day(10, 5)), historyRepository.records.first().map { it.startDate })
+        assertEquals(InitialSetup(day(2), day(5)), setupRepository.initialSetup.first())
     }
 
     @Test
     fun `save failure is reported and not shown as saved`() = runTest {
-        val vm = viewModel(SetupRepository(FailingDataStore(failWrites = true)))
+        val failing = SetupRepository(FailingDataStore(failWrites = true))
+        val vm = viewModel(HistoryRepository(FakeMenstruationRecordDao(), failing))
         vm.onDayTapped(day(2))
 
         vm.onConfirm()

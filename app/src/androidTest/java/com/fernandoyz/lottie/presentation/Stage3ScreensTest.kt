@@ -84,8 +84,7 @@ class Stage3ScreensTest {
             LottieTheme {
                 CalendarScreen(
                     uiState = state,
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthChanged = {},
                     onDayTapped = onDayTapped,
                     onConfirmDelete = {},
                     onDismissDelete = {},

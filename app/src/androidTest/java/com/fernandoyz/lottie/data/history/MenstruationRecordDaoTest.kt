@@ -44,6 +44,20 @@ class MenstruationRecordDaoTest {
         assertNull(dao.getById(id))
     }
 
+    @Test
+    fun replaceAllSwapsTheWholeHistory() = runBlocking {
+        dao.insert(MenstruationRecordEntity(startEpochDay = 100, endEpochDay = 104))
+
+        dao.replaceAll(
+            listOf(
+                MenstruationRecordEntity(startEpochDay = 100, endEpochDay = 103),
+                MenstruationRecordEntity(startEpochDay = 130, endEpochDay = 134),
+            ),
+        )
+
+        assertEquals(listOf(130L to 134L, 100L to 103L), dao.getAll().map { it.startEpochDay to it.endEpochDay })
+    }
+
     @Test(expected = SQLiteConstraintException::class)
     fun duplicateStartIsRejected() = runBlocking {
         dao.insert(MenstruationRecordEntity(startEpochDay = 100, endEpochDay = null))

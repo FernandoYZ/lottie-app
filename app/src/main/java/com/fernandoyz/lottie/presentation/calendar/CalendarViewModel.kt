@@ -40,7 +40,10 @@ data class CalendarUiState(
     val writeFailed: Boolean = false,
     val isWriting: Boolean = false,
 ) {
-    val marks: Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
+    /** Marks for any month, so the neighbour pages show them while swiping. */
+    fun marksFor(month: YearMonth): Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
+
+    val marks: Map<LocalDate, DayMark> = marksFor(month)
 
     /** Days filled when a start is tapped: adapts to the history, 6 by default (STAGE_4 §3). */
     val periodLengthDays: Int = CycleStatistics.periodLengthDays(records, today)
@@ -78,9 +81,7 @@ class CalendarViewModel(
         }
     }
 
-    fun onPreviousMonth() = _uiState.update { it.copy(month = it.month.minusMonths(1)) }
-
-    fun onNextMonth() = _uiState.update { it.copy(month = it.month.plusMonths(1)) }
+    fun onMonthChanged(month: YearMonth) = _uiState.update { it.copy(month = month) }
 
     fun onDayTapped(date: LocalDate) {
         val state = _uiState.value

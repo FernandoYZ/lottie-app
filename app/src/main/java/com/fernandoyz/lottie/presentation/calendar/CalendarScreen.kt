@@ -33,6 +33,7 @@ import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.presentation.history.messageRes
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
+import java.time.YearMonth
 
 /** Stateful container: connects [CalendarViewModel] with the stateless [CalendarScreen]. */
 @Composable
@@ -40,8 +41,7 @@ fun CalendarRoute(viewModel: CalendarViewModel, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     CalendarScreen(
         uiState = uiState,
-        onPreviousMonth = viewModel::onPreviousMonth,
-        onNextMonth = viewModel::onNextMonth,
+        onMonthChanged = viewModel::onMonthChanged,
         onDayTapped = viewModel::onDayTapped,
         onConfirmDelete = viewModel::onConfirmDelete,
         onDismissDelete = viewModel::onDismissDelete,
@@ -52,8 +52,7 @@ fun CalendarRoute(viewModel: CalendarViewModel, modifier: Modifier = Modifier) {
 @Composable
 fun CalendarScreen(
     uiState: CalendarUiState,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthChanged: (YearMonth) -> Unit,
     onDayTapped: (LocalDate) -> Unit,
     onConfirmDelete: () -> Unit,
     onDismissDelete: () -> Unit,
@@ -84,11 +83,10 @@ fun CalendarScreen(
         )
 
         MonthCalendar(
-            month = uiState.month,
-            marks = uiState.marks,
+            initialMonth = uiState.month,
+            marksFor = uiState::marksFor,
             today = uiState.today,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
+            onMonthChanged = onMonthChanged,
             onDayClick = onDayTapped,
         )
 
@@ -127,8 +125,7 @@ private fun CalendarScreenPreview() {
                 records = listOf(MenstruationRecord(1, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4))),
                 estimate = PeriodEstimate(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 2), isPast = false, isApproximate = true),
             ),
-            onPreviousMonth = {},
-            onNextMonth = {},
+            onMonthChanged = {},
             onDayTapped = {},
             onConfirmDelete = {},
             onDismissDelete = {},

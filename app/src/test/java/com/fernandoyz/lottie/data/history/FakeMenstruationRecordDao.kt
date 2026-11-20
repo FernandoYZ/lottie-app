@@ -36,4 +36,19 @@ class FakeMenstruationRecordDao(var failWrites: Boolean = false) : MenstruationR
         if (failWrites) throw IOException("Simulated write failure")
         rows.value = rows.value.filterNot { it.id == id }
     }
+
+    override suspend fun deleteAll() {
+        if (failWrites) throw IOException("Simulated write failure")
+        rows.value = emptyList()
+    }
+
+    override suspend fun insertAll(records: List<MenstruationRecordEntity>) {
+        if (failWrites) throw IOException("Simulated write failure")
+        rows.value = rows.value + records.map { it.copy(id = nextId++) }
+    }
+
+    override suspend fun replaceAll(records: List<MenstruationRecordEntity>) {
+        if (failWrites) throw IOException("Simulated write failure")
+        rows.value = records.map { it.copy(id = nextId++) }
+    }
 }

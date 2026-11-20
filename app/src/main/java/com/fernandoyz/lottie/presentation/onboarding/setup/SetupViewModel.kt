@@ -5,14 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
 import com.fernandoyz.lottie.domain.CalendarMarks
 import com.fernandoyz.lottie.domain.CycleStatistics
 import com.fernandoyz.lottie.domain.DayAction
 import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
-import com.fernandoyz.lottie.domain.model.InitialSetup
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,49 +26,47 @@ import java.time.YearMonth
 data class SetupUiState(
     val today: LocalDate,
     val month: YearMonth = YearMonth.from(today),
-    /** Start and end of the last menstruation, marked on the calendar. */
-    val start: LocalDate? = null,
-    val end: LocalDate? = null,
+    /** Menstruations marked on the calendar, not saved yet. Ids are local to this screen. */
+    val menstruations: List<MenstruationRecord> = emptyList(),
     val rejection: HistoryValidationError? = null,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val saveFailed: Boolean = false,
 ) {
-    internal val draft: List<MenstruationRecord> =
-        if (start != null && end != null) listOf(MenstruationRecord(DRAFT_ID, start, end)) else emptyList()
+    fun marksFor(month: YearMonth): Map<LocalDate, DayMark> =
+        CalendarMarks.marksFor(month, menstruations, estimate = null, today = today)
 
-    val marks: Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, draft, estimate = null, today = today)
+    val marks: Map<LocalDate, DayMark> = marksFor(month)
 
-    val canConfirm: Boolean = draft.isNotEmpty() && !isSaving && !isSaved
-
-    private companion object {
-        const val DRAFT_ID = 0L
-    }
+    val canConfirm: Boolean = menstruations.isNotEmpty() && !isSaving && !isSaved
 }
 
-/** Initial setup: tap the day the last menstruation started (STAGE_4 §4). */
+/** Initial setup: mark one or more past menstruations on the calendar (STAGE_4 §4). */
 class SetupViewModel(
-    private val repository: SetupRepository,
+    private val historyRepository: HistoryRepository,
     clock: Clock,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SetupUiState(today = LocalDate.now(clock)))
     val uiState: StateFlow<SetupUiState> = _uiState.asStateFlow()
 
-    fun onPreviousMonth() = _uiState.update { it.copy(month = it.month.minusMonths(1)) }
+    private var nextDraftId = 1L
 
-    fun onNextMonth() = _uiState.update { it.copy(month = it.month.plusMonths(1)) }
+    fun onMonthChanged(month: YearMonth) = _uiState.update { it.copy(month = month) }
 
-    /** Same tap rules as the calendar; there is only one menstruation, so a new start replaces it. */
+    /** Same tap rules as the calendar screen; deleting needs no confirmation because nothing is saved yet. */
     fun onDayTapped(date: LocalDate) {
         val state = _uiState.value
         if (state.isSaving || state.isSaved) return
-        val action = CalendarEditing.actionFor(date, state.draft, state.today, CycleStatistics.DEFAULT_PERIOD_LENGTH_DAYS)
+        val list = state.menstruations
+        val fill = CycleStatistics.periodLengthDays(list, state.today)
         val cleared = state.copy(rejection = null, saveFailed = false)
-        _uiState.value = when (action) {
-            is DayAction.Add -> cleared.copy(start = action.start, end = action.end)
-            is DayAction.ChangeEnd -> cleared.copy(end = action.newEnd)
-            is DayAction.Delete -> cleared.copy(start = null, end = null)
+        _uiState.value = when (val action = CalendarEditing.actionFor(date, list, state.today, fill)) {
+            is DayAction.Add -> cleared.copy(menstruations = list + MenstruationRecord(nextDraftId++, action.start, action.end))
+            is DayAction.ChangeEnd -> cleared.copy(
+                menstruations = list.map { if (it.id == action.record.id) it.copy(endDate = action.newEnd) else it },
+            )
+            is DayAction.Delete -> cleared.copy(menstruations = list.filterNot { it.id == action.record.id })
             DayAction.StartInFuture -> cleared.copy(rejection = HistoryValidationError.StartInFuture)
         }
     }
@@ -77,12 +74,12 @@ class SetupViewModel(
     fun onConfirm() {
         val current = _uiState.value
         if (!current.canConfirm) return
-        val setup = InitialSetup(current.start ?: return, current.end)
+        val marked = current.menstruations.mapNotNull { record -> record.endDate?.let { record.startDate to it } }
 
         _uiState.update { it.copy(isSaving = true, saveFailed = false) }
         viewModelScope.launch {
             try {
-                repository.save(setup)
+                historyRepository.completeOnboarding(marked)
                 _uiState.update { it.copy(isSaving = false, isSaved = true) }
             } catch (e: CancellationException) {
                 throw e
@@ -94,8 +91,8 @@ class SetupViewModel(
     }
 
     companion object {
-        fun factory(repository: SetupRepository, clock: Clock): ViewModelProvider.Factory = viewModelFactory {
-            initializer { SetupViewModel(repository, clock) }
+        fun factory(historyRepository: HistoryRepository, clock: Clock): ViewModelProvider.Factory = viewModelFactory {
+            initializer { SetupViewModel(historyRepository, clock) }
         }
     }
 }

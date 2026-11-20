@@ -3,6 +3,7 @@ package com.fernandoyz.lottie.data.history
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.HistoryValidation
 import com.fernandoyz.lottie.domain.HistoryValidationError
+import com.fernandoyz.lottie.domain.model.InitialSetup
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -39,6 +40,23 @@ class HistoryRepository(
                 ),
             )
         }
+        setupRepository.markHistorySeeded()
+    }
+
+    /**
+     * Saves the menstruations marked during the initial setup (STAGE_4 §4) and completes it.
+     * The history is replaced: before the setup is completed, any stored row can only come from an
+     * interrupted earlier attempt, so a retry never duplicates records.
+     * [menstruations] are (start, end) pairs built with the calendar rules, so they never overlap.
+     */
+    suspend fun completeOnboarding(menstruations: List<Pair<LocalDate, LocalDate>>) {
+        val latest = menstruations.maxByOrNull { it.first } ?: return
+        dao.replaceAll(
+            menstruations.map { (start, end) ->
+                MenstruationRecordEntity(startEpochDay = start.toEpochDay(), endEpochDay = end.toEpochDay())
+            },
+        )
+        setupRepository.save(InitialSetup(latest.first, latest.second))
         setupRepository.markHistorySeeded()
     }
 

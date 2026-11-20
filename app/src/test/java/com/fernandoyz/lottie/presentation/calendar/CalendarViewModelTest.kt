@@ -39,16 +39,21 @@ class CalendarViewModelTest {
     private suspend fun stored(): List<MenstruationRecord> = historyRepository.records.first()
 
     @Test
-    fun `opens on the current month and navigates months`() {
+    fun `opens on the current month and follows the shown month`() {
         val vm = viewModel()
         assertEquals(YearMonth.of(2026, 6), vm.uiState.value.month)
 
-        vm.onNextMonth()
-        assertEquals(YearMonth.of(2026, 7), vm.uiState.value.month)
+        vm.onMonthChanged(YearMonth.of(2026, 4))
 
-        vm.onPreviousMonth()
-        vm.onPreviousMonth()
-        assertEquals(YearMonth.of(2026, 5), vm.uiState.value.month)
+        assertEquals(YearMonth.of(2026, 4), vm.uiState.value.month)
+    }
+
+    @Test
+    fun `marks are available for any month shown while swiping`() = runTest {
+        historyRepository.add(day(5, 30), day(6, 2), today)
+        val vm = viewModel()
+
+        assertEquals(DayMark.Registered, vm.uiState.value.marksFor(YearMonth.of(2026, 5))[day(5, 31)])
     }
 
     @Test

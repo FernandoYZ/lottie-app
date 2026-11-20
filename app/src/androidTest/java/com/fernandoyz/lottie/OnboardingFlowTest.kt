@@ -18,6 +18,7 @@ import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.model.InitialSetup
+import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupScreen
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupUiState
@@ -117,8 +118,7 @@ class OnboardingFlowTest {
                         today = today,
                         rejection = HistoryValidationError.StartInFuture,
                     ),
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    onMonthChanged = {},
                     onDayTapped = {},
                     onConfirm = {},
                 )
@@ -134,9 +134,8 @@ class OnboardingFlowTest {
         composeRule.setContent {
             LottieTheme {
                 SetupScreen(
-                    uiState = SetupUiState(today = today, start = today.minusDays(3), end = today, saveFailed = true),
-                    onPreviousMonth = {},
-                    onNextMonth = {},
+                    uiState = SetupUiState(today = today, menstruations = listOf(MenstruationRecord(1, today.minusDays(3), today)), saveFailed = true),
+                    onMonthChanged = {},
                     onDayTapped = {},
                     onConfirm = {},
                 )

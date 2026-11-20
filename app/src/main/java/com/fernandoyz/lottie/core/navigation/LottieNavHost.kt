@@ -44,7 +44,7 @@ fun LottieNavHost(
         }
         composable(LottieDestinations.INITIAL_SETUP) {
             SetupRoute(
-                viewModel = viewModel(factory = SetupViewModel.factory(setupRepository, clock)),
+                viewModel = viewModel(factory = SetupViewModel.factory(historyRepository, clock)),
                 onSetupSaved = {
                     // Clear the onboarding from the back stack so Back does not return to it.
                     navController.navigate(LottieDestinations.HOME) {

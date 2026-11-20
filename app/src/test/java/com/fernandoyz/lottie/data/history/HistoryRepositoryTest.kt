@@ -117,4 +117,27 @@ class HistoryRepositoryTest {
 
         assertEquals(listOf(MenstruationRecord(1, setupDate, setupDate.plusDays(3))), repository.records.first())
     }
+
+    @Test
+    fun `onboarding stores every marked menstruation and completes the setup`() = runTest {
+        val april = LocalDate.of(2026, 4, 3) to LocalDate.of(2026, 4, 7)
+        val may = LocalDate.of(2026, 5, 2) to LocalDate.of(2026, 5, 6)
+
+        repository.completeOnboarding(listOf(april, may))
+
+        assertEquals(listOf(may.first, april.first), repository.records.first().map { it.startDate })
+        assertEquals(InitialSetup(may.first, may.second), setupRepository.initialSetup.first())
+        repository.seedInitialRecordIfNeeded() // already seeded: nothing is added
+        assertEquals(2, repository.records.first().size)
+    }
+
+    @Test
+    fun `retrying an interrupted onboarding does not duplicate records`() = runTest {
+        val may = LocalDate.of(2026, 5, 2) to LocalDate.of(2026, 5, 6)
+        dao.insert(MenstruationRecordEntity(startEpochDay = may.first.toEpochDay(), endEpochDay = may.second.toEpochDay()))
+
+        repository.completeOnboarding(listOf(may))
+
+        assertEquals(1, repository.records.first().size)
+    }
 }

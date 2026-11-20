@@ -12,11 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,39 +44,78 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val spanish: Locale = Locale.forLanguageTag("es")
 private val monthTitleFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM 'de' yyyy", spanish)
 
+private val firstPageMonth: YearMonth = YearMonth.of(1900, 1)
+private const val PAGE_COUNT = 300 * 12 // 1900-2199
+
+private fun pageOf(month: YearMonth): Int = (ChronoUnit.MONTHS.between(firstPageMonth, month).toInt()).coerceIn(0, PAGE_COUNT - 1)
+private fun monthOf(page: Int): YearMonth = firstPageMonth.plusMonths(page.toLong())
+
 /**
- * Month grid with previous/next navigation, shared by the initial setup and the calendar screen.
- * Weeks start on Monday (STAGE_3 §3). Days are tappable when [onDayClick] is not null (STAGE_4 §2).
+ * Month grid shared by the initial setup and the calendar screen. Weeks start on Monday (STAGE_3 §3).
+ * Swiping changes month like book pages: finger to the right shows the previous month (STAGE_4 §6);
+ * the buttons do the same. Days are tappable when [onDayClick] is not null (STAGE_4 §2).
+ * [initialMonth] is read once; [onMonthChanged] reports the month that settles on screen.
  */
 @Composable
 fun MonthCalendar(
-    month: YearMonth,
-    marks: Map<LocalDate, DayMark>,
+    initialMonth: YearMonth,
     today: LocalDate,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    marksFor: (YearMonth) -> Map<LocalDate, DayMark>,
+    onMonthChanged: (YearMonth) -> Unit,
     onDayClick: ((LocalDate) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
+    val pagerState = rememberPagerState(initialPage = pageOf(initialMonth)) { PAGE_COUNT }
+    val scope = rememberCoroutineScope()
+    val currentOnMonthChanged by rememberUpdatedState(onMonthChanged)
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { currentOnMonthChanged(monthOf(it)) }
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onPreviousMonth) { Text("‹ " + stringResource(R.string.calendar_previous_month)) }
+            TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } }) {
+                Text("‹ " + stringResource(R.string.calendar_previous_month))
+            }
             Text(
-                text = month.format(monthTitleFormatter).replaceFirstChar { it.titlecase(spanish) },
+                text = monthOf(pagerState.currentPage).format(monthTitleFormatter).replaceFirstChar { it.titlecase(spanish) },
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
                     .semantics { heading() },
             )
-            TextButton(onClick = onNextMonth) { Text(stringResource(R.string.calendar_next_month) + " ›") }
+            TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } }) {
+                Text(stringResource(R.string.calendar_next_month) + " ›")
+            }
         }
-        MonthGrid(month = month, marks = marks, today = today, onDayClick = onDayClick)
+        WeekdayHeader()
+        HorizontalPager(state = pagerState, verticalAlignment = Alignment.Top) { page ->
+            val month = monthOf(page)
+            MonthGrid(month = month, marks = marksFor(month), today = today, onDayClick = onDayClick)
+        }
+    }
+}
+
+@Composable
+private fun WeekdayHeader() {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        DayOfWeek.entries.forEach { dayOfWeek ->
+            Text(
+                text = dayOfWeek.getDisplayName(TextStyle.NARROW, spanish).uppercase(spanish),
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -84,17 +130,6 @@ private fun MonthGrid(
     val cells: List<LocalDate?> = List(leadingBlanks) { null } + (1..month.lengthOfMonth()).map(month::atDay)
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            DayOfWeek.entries.forEach { dayOfWeek ->
-                Text(
-                    text = dayOfWeek.getDisplayName(TextStyle.NARROW, spanish).uppercase(spanish),
-                    style = MaterialTheme.typography.labelMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
         cells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { date ->

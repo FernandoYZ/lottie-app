@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -26,10 +27,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.presentation.common.CalendarLegend
 import com.fernandoyz.lottie.presentation.common.MonthCalendar
-import com.fernandoyz.lottie.presentation.common.formatShortDate
+import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.history.messageRes
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
+import java.time.YearMonth
 
 /** Stateful container: connects [SetupViewModel] with the stateless [SetupScreen]. */
 @Composable
@@ -46,8 +48,7 @@ fun SetupRoute(
 
     SetupScreen(
         uiState = uiState,
-        onPreviousMonth = viewModel::onPreviousMonth,
-        onNextMonth = viewModel::onNextMonth,
+        onMonthChanged = viewModel::onMonthChanged,
         onDayTapped = viewModel::onDayTapped,
         onConfirm = viewModel::onConfirm,
         modifier = modifier,
@@ -57,8 +58,7 @@ fun SetupRoute(
 @Composable
 fun SetupScreen(
     uiState: SetupUiState,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
+    onMonthChanged: (YearMonth) -> Unit,
     onDayTapped: (LocalDate) -> Unit,
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
@@ -74,19 +74,17 @@ fun SetupScreen(
         Text(text = stringResource(R.string.setup_calendar_instructions), style = MaterialTheme.typography.bodyMedium)
 
         MonthCalendar(
-            month = uiState.month,
-            marks = uiState.marks,
+            initialMonth = uiState.month,
+            marksFor = uiState::marksFor,
             today = uiState.today,
-            onPreviousMonth = onPreviousMonth,
-            onNextMonth = onNextMonth,
+            onMonthChanged = onMonthChanged,
             onDayClick = onDayTapped,
         )
 
-        val start = uiState.start
-        val end = uiState.end
-        if (start != null && end != null) {
+        val count = uiState.menstruations.size
+        if (count > 0) {
             Text(
-                text = stringResource(R.string.setup_selected_range, formatShortDate(start), formatShortDate(end)),
+                text = pluralStringResource(R.plurals.setup_marked_count, count, count),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -120,11 +118,9 @@ private fun SetupScreenPreview() {
         SetupScreen(
             uiState = SetupUiState(
                 today = LocalDate.of(2026, 11, 19),
-                start = LocalDate.of(2026, 11, 2),
-                end = LocalDate.of(2026, 11, 6),
+                menstruations = listOf(MenstruationRecord(1, LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 6))),
             ),
-            onPreviousMonth = {},
-            onNextMonth = {},
+            onMonthChanged = {},
             onDayTapped = {},
             onConfirm = {},
         )

@@ -14,8 +14,11 @@
 
     <!-- Initial setup (STAGE_4 §4) -->
     <string name="setup_title">Configuración inicial</string>
-    <string name="setup_calendar_instructions">Toca el día en que empezó tu última menstruación. Se marcarán 6 días; si duró menos, toca el primer día en que ya no la tuviste.</string>
-    <string name="setup_selected_range">Última menstruación: %1$s – %2$s</string>
+    <string name="setup_calendar_instructions">Marca tus últimas menstruaciones; cuantas más marques, mejor será la estimación. Toca el día en que empezó cada una: se marcarán 6 días. Si duró menos, toca el primer día en que ya no la tuviste. Desliza para cambiar de mes.</string>
+    <plurals name="setup_marked_count">
+        <item quantity="one">%d menstruación marcada</item>
+        <item quantity="other">%d menstruaciones marcadas</item>
+    </plurals>
     <string name="setup_save">Guardar</string>
     <string name="setup_save_error">No se pudo guardar la configuración. Inténtalo de nuevo.</string>
 
@@ -56,8 +59,8 @@
     <string name="home_open_calendar">Registrar en el calendario</string>
     <string name="calendar_title">Calendario</string>
     <plurals name="calendar_instructions">
-        <item quantity="one">Toca un día para marcar el inicio de una menstruación: se marcará %d día. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla.</item>
-        <item quantity="other">Toca un día para marcar el inicio de una menstruación: se marcarán %d días. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla.</item>
+        <item quantity="one">Toca un día para marcar el inicio de una menstruación: se marcará %d día. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla. Desliza para cambiar de mes.</item>
+        <item quantity="other">Toca un día para marcar el inicio de una menstruación: se marcarán %d días. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla. Desliza para cambiar de mes.</item>
     </plurals>
     <string name="calendar_previous_month">Mes anterior</string>
     <string name="calendar_next_month">Mes siguiente</string>

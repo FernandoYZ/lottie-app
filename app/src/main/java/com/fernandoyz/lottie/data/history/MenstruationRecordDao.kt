@@ -3,6 +3,7 @@ package com.fernandoyz.lottie.data.history
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -26,4 +27,17 @@ interface MenstruationRecordDao {
 
     @Query("DELETE FROM menstruation_records WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM menstruation_records")
+    suspend fun deleteAll()
+
+    @Insert
+    suspend fun insertAll(records: List<MenstruationRecordEntity>)
+
+    /** Replaces the whole history in one transaction. Only used before the onboarding is completed. */
+    @Transaction
+    suspend fun replaceAll(records: List<MenstruationRecordEntity>) {
+        deleteAll()
+        insertAll(records)
+    }
 }
