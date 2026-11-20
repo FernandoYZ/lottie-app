@@ -16,3 +16,6 @@ local.properties
 
 # Personal menstrual data: never commit
 registro.csv
+
+# Editor settings
+.vscode/
