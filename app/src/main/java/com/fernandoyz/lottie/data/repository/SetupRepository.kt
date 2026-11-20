@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 
@@ -18,6 +19,7 @@ import java.time.LocalDate
  * - `last_menstruation_epoch_day` (Long): [LocalDate.toEpochDay], a calendar day with no time zone.
  * - `usual_cycle_length_days` (Int).
  * - `onboarding_completed` (Boolean).
+ * - `history_seeded` (Boolean): the onboarding date was turned into the first history record.
  *
  * Read and write failures are propagated to the caller; they are never hidden.
  */
@@ -44,7 +46,15 @@ class SetupRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /** Whether the onboarding date was already turned into the first history record (STAGE_2 §2). */
+    suspend fun isHistorySeeded(): Boolean = dataStore.data.first()[HISTORY_SEEDED] ?: false
+
+    suspend fun markHistorySeeded() {
+        dataStore.edit { it[HISTORY_SEEDED] = true }
+    }
+
     private companion object {
+        val HISTORY_SEEDED = booleanPreferencesKey("history_seeded")
         val LAST_MENSTRUATION_EPOCH_DAY = longPreferencesKey("last_menstruation_epoch_day")
         val USUAL_CYCLE_LENGTH_DAYS = intPreferencesKey("usual_cycle_length_days")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
