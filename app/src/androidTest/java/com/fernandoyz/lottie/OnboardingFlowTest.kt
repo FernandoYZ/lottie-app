@@ -90,7 +90,7 @@ class OnboardingFlowTest {
 
         setApp()
 
-        composeRule.onNodeWithText(text(R.string.home_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.estimate_title)).assertIsDisplayed() // Home tab content
         composeRule.onNodeWithText(text(R.string.welcome_title)).assertDoesNotExist()
     }
 
@@ -106,7 +106,7 @@ class OnboardingFlowTest {
         ).assertExists()
         composeRule.onNodeWithText(text(R.string.setup_save)).performScrollTo().assertIsEnabled().performClick()
 
-        composeRule.onNodeWithText(text(R.string.home_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.estimate_title)).assertIsDisplayed() // Home tab content
     }
 
     @Test

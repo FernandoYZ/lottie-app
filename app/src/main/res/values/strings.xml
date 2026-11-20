@@ -37,6 +37,7 @@
 
     <!-- Home / history -->
     <string name="home_title">Inicio</string>
+    <string name="home_empty">Todavía no hay menstruaciones registradas. Márcalas en la pestaña Calendario.</string>
     <string name="history_load_error">No se pudo cargar el historial.</string>
     <string name="history_section">Historial</string>
     <string name="history_empty">Todavía no hay registros.</string>
@@ -56,7 +57,6 @@
     <string name="estimate_approximate">Aproximada: usa un ciclo de 28 días hasta que registres al menos 2 menstruaciones.</string>
 
     <!-- Calendar (STAGE_3 §3, STAGE_4 §2) -->
-    <string name="home_open_calendar">Registrar en el calendario</string>
     <string name="calendar_title">Calendario</string>
     <plurals name="calendar_instructions">
         <item quantity="one">Toca un día para marcar el inicio de una menstruación: se marcará %d día. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla. Desliza para cambiar de mes.</item>
@@ -97,7 +97,6 @@
     <string name="home_today_cycle_day" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo</string>
 
     <!-- Settings (STAGE_4 §3) -->
-    <string name="home_open_settings">Ajustes</string>
     <string name="settings_title">Ajustes</string>
     <string name="settings_cycle_explanation">Déjalo vacío para que Lottie calcule la duración del ciclo con tus registros. Escribe un valor solo si quieres fijarlo a mano.</string>
     <plurals name="settings_cycle_learned">
@@ -109,6 +108,7 @@
         <item quantity="other">Por ahora se usan %d días por defecto; se ajustará cuando registres al menos 2 menstruaciones.</item>
     </plurals>
     <string name="settings_save">Guardar</string>
+    <string name="settings_saved">Cambios guardados.</string>
     <string name="settings_save_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
     <string name="settings_load_error">No se pudo cargar la configuración.</string>
 

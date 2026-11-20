@@ -4,14 +4,12 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,10 +29,10 @@ class HistoryScreensTest {
     private val current = MenstruationRecord(2, LocalDate.of(2026, 6, 14), LocalDate.of(2026, 6, 19))
     private val closed = MenstruationRecord(1, LocalDate.of(2026, 5, 14), LocalDate.of(2026, 5, 17))
 
-    private fun setHistory(state: HistoryUiState, onOpenCalendar: () -> Unit = {}) {
+    private fun setHistory(state: HistoryUiState) {
         composeRule.setContent {
             LottieTheme {
-                HistoryScreen(uiState = state, onOpenCalendar = onOpenCalendar, onOpenSettings = {}, onRetry = {})
+                HistoryScreen(uiState = state, onRetry = {})
             }
         }
     }
@@ -54,15 +52,5 @@ class HistoryScreensTest {
         setHistory(HistoryUiState(today = today, isLoading = false))
 
         composeRule.onNodeWithText(text(R.string.history_empty)).assertIsDisplayed()
-    }
-
-    @Test
-    fun calendarButtonOpensTheCalendar() {
-        var opened = false
-        setHistory(HistoryUiState(today = today, isLoading = false), onOpenCalendar = { opened = true })
-
-        composeRule.onNodeWithText(text(R.string.home_open_calendar)).performClick()
-
-        assertTrue(opened)
     }
 }

@@ -1,17 +1,37 @@
 package com.fernandoyz.lottie.core.navigation
 
+import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.presentation.calendar.CalendarRoute
 import com.fernandoyz.lottie.presentation.calendar.CalendarViewModel
 import com.fernandoyz.lottie.presentation.history.HistoryRoute
 import com.fernandoyz.lottie.presentation.history.HistoryViewModel
+import com.fernandoyz.lottie.presentation.home.HomeRoute
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupRoute
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupViewModel
 import com.fernandoyz.lottie.presentation.onboarding.welcome.WelcomeScreen
@@ -25,7 +45,17 @@ object LottieDestinations {
     const val INITIAL_SETUP = "initial_setup"
     const val HOME = "home"
     const val CALENDAR = "calendar"
+    const val HISTORY = "history"
     const val SETTINGS = "settings"
+}
+
+/** Top-level tabs of the bottom bar (bottom-bar S1). Welcome and setup stay outside it. */
+private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector) {
+    Home(LottieDestinations.HOME, R.string.home_title, Icons.Filled.Home),
+    Calendar(LottieDestinations.CALENDAR, R.string.calendar_title, Icons.Filled.DateRange),
+
+    History(LottieDestinations.HISTORY, R.string.history_section, Icons.AutoMirrored.Filled.List),
+    Settings(LottieDestinations.SETTINGS, R.string.settings_title, Icons.Filled.Settings),
 }
 
 @Composable
@@ -37,38 +67,68 @@ fun LottieNavHost(
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
 
-    NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
-        composable(LottieDestinations.WELCOME) {
-            WelcomeScreen(onStart = { navController.navigate(LottieDestinations.INITIAL_SETUP) })
+    // The outer Scaffold in LottieApp already applies the system insets.
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = {
+            if (Tab.entries.any { it.route == currentRoute }) BottomBar(navController, currentRoute)
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.padding(innerPadding),
+        ) {
+            composable(LottieDestinations.WELCOME) {
+                WelcomeScreen(onStart = { navController.navigate(LottieDestinations.INITIAL_SETUP) })
+            }
+            composable(LottieDestinations.INITIAL_SETUP) {
+                SetupRoute(
+                    viewModel = viewModel(factory = SetupViewModel.factory(historyRepository, clock)),
+                    onSetupSaved = {
+                        // Clear the onboarding from the back stack so Back does not return to it.
+                        navController.navigate(LottieDestinations.HOME) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(LottieDestinations.HOME) {
+                HomeRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)))
+            }
+            composable(LottieDestinations.CALENDAR) {
+                CalendarRoute(viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, clock)))
+            }
+            composable(LottieDestinations.HISTORY) {
+                HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)))
+            }
+            composable(LottieDestinations.SETTINGS) {
+                SettingsRoute(viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository, historyRepository)))
+            }
         }
-        composable(LottieDestinations.INITIAL_SETUP) {
-            SetupRoute(
-                viewModel = viewModel(factory = SetupViewModel.factory(historyRepository, clock)),
-                onSetupSaved = {
-                    // Clear the onboarding from the back stack so Back does not return to it.
-                    navController.navigate(LottieDestinations.HOME) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+    }
+}
+
+@Composable
+private fun BottomBar(navController: NavController, currentRoute: String?) {
+    NavigationBar(windowInsets = WindowInsets(0)) {
+        Tab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = tab.route == currentRoute,
+                onClick = {
+                    navController.navigate(tab.route) {
+                        // Home is always the root after the onboarding: keep one copy of each tab.
+                        popUpTo(LottieDestinations.HOME) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
                     }
                 },
-            )
-        }
-        composable(LottieDestinations.HOME) {
-            HistoryRoute(
-                viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)),
-                onOpenCalendar = { navController.navigate(LottieDestinations.CALENDAR) },
-                onOpenSettings = { navController.navigate(LottieDestinations.SETTINGS) },
-            )
-        }
-        composable(LottieDestinations.CALENDAR) {
-            CalendarRoute(
-                viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, clock)),
-            )
-        }
-        composable(LottieDestinations.SETTINGS) {
-            SettingsRoute(
-                viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository, historyRepository)),
-                onSaved = { navController.popBackStack() },
+                icon = { Icon(tab.icon, contentDescription = null) },
+                label = { Text(stringResource(tab.label)) },
             )
         }
     }

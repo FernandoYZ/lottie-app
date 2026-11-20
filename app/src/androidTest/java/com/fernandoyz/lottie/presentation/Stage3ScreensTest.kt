@@ -19,7 +19,7 @@ import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.calendar.CalendarScreen
 import com.fernandoyz.lottie.presentation.calendar.CalendarUiState
 import com.fernandoyz.lottie.presentation.common.formatLongDate
-import com.fernandoyz.lottie.presentation.history.HistoryScreen
+import com.fernandoyz.lottie.presentation.home.HomeScreen
 import com.fernandoyz.lottie.presentation.history.HistoryUiState
 import com.fernandoyz.lottie.presentation.settings.SettingsScreen
 import com.fernandoyz.lottie.presentation.settings.SettingsUiState
@@ -47,24 +47,23 @@ class Stage3ScreensTest {
     private fun setHome(estimate: PeriodEstimate?) {
         composeRule.setContent {
             LottieTheme {
-                HistoryScreen(
+                HomeScreen(
                     uiState = HistoryUiState(today = today, isLoading = false, records = listOf(record), estimate = estimate),
-                    onOpenCalendar = {}, onOpenSettings = {}, onRetry = {},
+                    onRetry = {},
                 )
             }
         }
     }
 
     @Test
-    fun homeShowsEstimateWithDisclaimerAndNavigationButtons() {
+    fun homeShowsTodayPhaseAndEstimateWithDisclaimer() {
         setHome(estimate)
 
         composeRule.onNodeWithText(text(R.string.estimate_title)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_disclaimer)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertDoesNotExist()
         composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertDoesNotExist()
-        composeRule.onNodeWithText(text(R.string.home_open_calendar)).assertIsDisplayed()
-        composeRule.onNodeWithText(text(R.string.home_open_settings)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_today_phase, 15, text(R.string.phase_ovulation).lowercase())).assertIsDisplayed()
     }
 
     @Test

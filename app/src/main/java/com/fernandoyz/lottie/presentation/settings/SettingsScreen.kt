@@ -15,7 +15,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,12 +32,8 @@ import com.fernandoyz.lottie.ui.theme.LottieTheme
 
 /** Stateful container: connects [SettingsViewModel] with the stateless [SettingsScreen]. */
 @Composable
-fun SettingsRoute(viewModel: SettingsViewModel, onSaved: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(uiState.isSaved) {
-        if (uiState.isSaved) onSaved()
-    }
 
     SettingsScreen(
         uiState = uiState,
@@ -91,6 +86,14 @@ fun SettingsScreen(
             showWarning = uiState.showReferenceRangeWarning,
             onValueChange = onCycleLengthChanged,
         )
+
+        if (uiState.isSaved) {
+            Text(
+                text = stringResource(R.string.settings_saved),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
 
         if (uiState.saveFailed) {
             Text(

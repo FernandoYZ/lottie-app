@@ -61,17 +61,20 @@ class SettingsViewModel(
         viewModelScope.launch {
             try {
                 val manual = repository.manualCycleLengthDays.first()
-                val records = historyRepository.records.first()
-                val learned = CycleStatistics.averageCycleLengthDays(records)
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        savedManualDays = manual,
-                        learnedCycleLengthDays = learned ?: CycleStatistics.DEFAULT_CYCLE_LENGTH_DAYS,
-                        learnedIsDefault = learned == null,
-                        longestBleedingDays = records.mapNotNull { r -> r.durationDays }.maxOrNull(),
-                        cycleLengthInput = manual?.toString().orEmpty(),
-                    )
+                    it.copy(savedManualDays = manual, cycleLengthInput = manual?.toString().orEmpty())
+                }
+                // As a tab the screen stays alive: the learned value follows the history.
+                historyRepository.records.collect { records ->
+                    val learned = CycleStatistics.averageCycleLengthDays(records)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            learnedCycleLengthDays = learned ?: CycleStatistics.DEFAULT_CYCLE_LENGTH_DAYS,
+                            learnedIsDefault = learned == null,
+                            longestBleedingDays = records.mapNotNull { r -> r.durationDays }.maxOrNull(),
+                        )
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -82,7 +85,7 @@ class SettingsViewModel(
     }
 
     fun onCycleLengthChanged(input: String) {
-        _uiState.update { it.copy(cycleLengthInput = input, saveFailed = false) }
+        _uiState.update { it.copy(cycleLengthInput = input, saveFailed = false, isSaved = false) }
     }
 
     fun onSave() {

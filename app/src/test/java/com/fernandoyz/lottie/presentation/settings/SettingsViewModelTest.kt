@@ -65,6 +65,32 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `after saving, editing again allows another save`() = runTest {
+        completeSetup()
+        val vm = SettingsViewModel(repository, history)
+        vm.onCycleLengthChanged("31")
+        vm.onSave()
+
+        vm.onCycleLengthChanged("32")
+
+        assertFalse(vm.uiState.value.isSaved)
+        assertTrue(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun `learned length follows new records and keeps the typed value`() = runTest {
+        completeSetup()
+        history.add(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 5), today)
+        val vm = SettingsViewModel(repository, history)
+        vm.onCycleLengthChanged("33")
+
+        history.add(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4), today) // 30 days later
+
+        assertEquals(30, vm.uiState.value.learnedCycleLengthDays)
+        assertEquals("33", vm.uiState.value.cycleLengthInput)
+    }
+
+    @Test
     fun `clearing the field goes back to the learned value`() = runTest {
         completeSetup()
         repository.setManualCycleLength(31)
