@@ -168,15 +168,16 @@ private fun DayCell(date: LocalDate, mark: DayMark?, isToday: Boolean) {
 
 @Composable
 private fun Legend() {
-    val primary = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        LegendRow(Modifier.background(primary, CircleShape), stringResource(R.string.calendar_legend_registered))
-        LegendRow(Modifier.border(2.dp, primary, CircleShape), stringResource(R.string.calendar_legend_estimated))
+        LegendRow(mark = DayMark.Registered, label = stringResource(R.string.calendar_legend_registered))
+        LegendRow(mark = DayMark.Estimated, label = stringResource(R.string.calendar_legend_estimated))
     }
 }
 
 @Composable
-private fun LegendRow(swatch: Modifier, label: String) {
+private fun LegendRow(mark: DayMark, label: String) {
+    val primary = MaterialTheme.colorScheme.primary
+    val swatch = if (mark == DayMark.Registered) Modifier.background(primary, CircleShape) else Modifier.border(2.dp, primary, CircleShape)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(modifier = Modifier.size(18.dp).then(swatch))
         Text(text = label, style = MaterialTheme.typography.bodyMedium)
