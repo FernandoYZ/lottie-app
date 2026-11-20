@@ -48,6 +48,8 @@ data class CalendarUiState(
 
     fun ovulationDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.ovulationDays(month, records, estimate, today)
 
+    fun fertileDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.fertileDays(month, records, estimate, today)
+
     /** Marks for any month, so the neighbour pages show them while swiping. */
     fun marksFor(month: YearMonth): Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
 

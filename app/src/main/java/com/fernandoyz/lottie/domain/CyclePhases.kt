@@ -14,6 +14,8 @@ data class CycleDayInfo(
     val phase: CyclePhase?,
     /** The next start comes from the estimate, not from a registered menstruation. */
     val basedOnEstimate: Boolean,
+    /** Within the estimated fertile window: the 5 days before ovulation and the ovulation day. */
+    val inFertileWindow: Boolean = false,
 )
 
 /**
@@ -25,6 +27,7 @@ data class CycleDayInfo(
 object CyclePhases {
 
     private const val LUTEAL_DAYS = 14L
+    private const val FERTILE_DAYS_BEFORE_OVULATION = 5L
 
     private data class Cycle(
         val start: LocalDate,
@@ -33,6 +36,12 @@ object CyclePhases {
         val estimated: Boolean,
     ) {
         val ovulation: LocalDate? = nextStart?.minusDays(LUTEAL_DAYS)?.takeIf { it.isAfter(menstruationEnd) }
+
+        fun isFertile(date: LocalDate): Boolean =
+            ovulation != null && !date.isAfter(ovulation) && !date.isBefore(ovulation.minusDays(FERTILE_DAYS_BEFORE_OVULATION))
+
+        val fertileDays: List<LocalDate> =
+            ovulation?.let { ov -> (FERTILE_DAYS_BEFORE_OVULATION downTo 0).map { ov.minusDays(it) } }.orEmpty()
     }
 
     fun dayInfo(
@@ -54,16 +63,19 @@ object CyclePhases {
             cycleDay = ChronoUnit.DAYS.between(cycle.start, date).toInt() + 1,
             phase = phase,
             basedOnEstimate = cycle.estimated,
+            inFertileWindow = cycle.isFertile(date),
         )
     }
 
     /** Estimated ovulation days shown on the calendar: real cycles plus the next estimated one. */
-    fun ovulationDays(
-        month: YearMonth,
-        records: List<MenstruationRecord>,
-        estimate: PeriodEstimate?,
-        today: LocalDate,
-    ): Set<LocalDate> {
+    fun ovulationDays(month: YearMonth, records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): Set<LocalDate> =
+        calendarCycles(records, estimate, today).mapNotNull { it.ovulation }.filter { YearMonth.from(it) == month }.toSet()
+
+    /** Estimated fertile days shown on the calendar, for the same cycles as [ovulationDays]. */
+    fun fertileDays(month: YearMonth, records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): Set<LocalDate> =
+        calendarCycles(records, estimate, today).flatMap { it.fertileDays }.filter { YearMonth.from(it) == month }.toSet()
+
+    private fun calendarCycles(records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): List<Cycle> {
         val sorted = records.sortedBy { it.startDate }
         val cycles = sorted.zipWithNext { current, next ->
             Cycle(current.startDate, current.shownEnd(today), next.startDate, estimated = false)
@@ -72,7 +84,7 @@ object CyclePhases {
                 Cycle(latest.startDate, latest.shownEnd(today), estimate?.start, estimated = true)
             },
         )
-        return cycles.mapNotNull { it.ovulation }.filter { YearMonth.from(it) == month }.toSet()
+        return cycles
     }
 
     private fun cycleAt(

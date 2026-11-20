@@ -74,6 +74,7 @@ fun MonthCalendar(
     modifier: Modifier = Modifier,
     onDayLongClick: ((LocalDate) -> Unit)? = null,
     ovulationDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
+    fertileDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
 ) {
     val pagerState = rememberPagerState(initialPage = pageOf(initialMonth)) { PAGE_COUNT }
     val scope = rememberCoroutineScope()
@@ -106,6 +107,7 @@ fun MonthCalendar(
                 month = month,
                 marks = marksFor(month),
                 ovulationDays = ovulationDaysFor(month),
+                fertileDays = fertileDaysFor(month),
                 today = today,
                 onDayClick = onDayClick,
                 onDayLongClick = onDayLongClick,
@@ -134,6 +136,7 @@ private fun MonthGrid(
     month: YearMonth,
     marks: Map<LocalDate, DayMark>,
     ovulationDays: Set<LocalDate>,
+    fertileDays: Set<LocalDate>,
     today: LocalDate,
     onDayClick: ((LocalDate) -> Unit)?,
     onDayLongClick: ((LocalDate) -> Unit)?,
@@ -152,6 +155,7 @@ private fun MonthGrid(
                                 mark = marks[date],
                                 isToday = date == today,
                                 isOvulation = date in ovulationDays,
+                                isFertile = date in fertileDays,
                                 onClick = onDayClick?.let { click -> { click(date) } },
                                 onLongClick = onDayLongClick?.let { longClick -> { longClick(date) } },
                             )
@@ -170,6 +174,7 @@ private fun DayCell(
     mark: DayMark?,
     isToday: Boolean,
     isOvulation: Boolean,
+    isFertile: Boolean,
     onClick: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
 ) {
@@ -180,13 +185,19 @@ private fun DayCell(
         DayMark.Estimated -> stringResource(R.string.calendar_day_estimated, formatLongDate(date))
         null -> formatLongDate(date)
     }
-    val description = if (isOvulation) stringResource(R.string.calendar_day_ovulation, markDescription) else markDescription
+    val description = when {
+        isOvulation -> stringResource(R.string.calendar_day_ovulation, markDescription)
+        isFertile -> stringResource(R.string.calendar_day_fertile, markDescription)
+        else -> markDescription
+    }
+    val fertileBackground = MaterialTheme.colorScheme.tertiaryContainer
     val detailLabel = stringResource(R.string.calendar_day_detail_action)
     val interactive = onClick != null || onLongClick != null
     Box(
         modifier = Modifier
             .padding(3.dp)
             .fillMaxSize()
+            .then(if (isFertile && mark == null) Modifier.background(fertileBackground, CircleShape) else Modifier)
             .dayMark(mark, primary, MaterialTheme.colorScheme.primaryContainer)
             .then(
                 if (interactive) {
@@ -246,6 +257,10 @@ fun CalendarLegend(modifier: Modifier = Modifier, showEstimated: Boolean = true)
                     Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.tertiary, CircleShape))
                 }
                 Text(text = stringResource(R.string.calendar_legend_ovulation), style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(18.dp).background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape))
+                Text(text = stringResource(R.string.calendar_legend_fertile), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

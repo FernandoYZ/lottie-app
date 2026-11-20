@@ -76,6 +76,8 @@
     <string name="calendar_delete_body">Se eliminará la menstruación que empezó el %1$s. Esta acción no se puede deshacer.</string>
     <string name="calendar_delete_confirm">Eliminar</string>
     <string name="calendar_legend_ovulation">Ovulación estimada</string>
+    <string name="calendar_legend_fertile">Ventana fértil estimada</string>
+    <string name="calendar_day_fertile">%1$s, ventana fértil estimada</string>
     <string name="calendar_day_ovulation">%1$s, ovulación estimada</string>
     <string name="calendar_day_detail_action">Ver detalle del día</string>
 
@@ -89,7 +91,8 @@
     <string name="day_detail_phase_unavailable">Fase no disponible: este ciclo es demasiado corto para calcularla.</string>
     <string name="day_detail_based_on_estimate">Calculada con la fecha estimada de la próxima menstruación.</string>
     <string name="day_detail_no_cycle">Todavía no hay datos del ciclo para este día.</string>
-    <string name="day_detail_disclaimer">Las fases son una aproximación del método del calendario: no son exactas con ciclos irregulares y no sirven como método anticonceptivo.</string>
+    <string name="day_detail_disclaimer">Las fases y la ventana fértil son una aproximación del método del calendario: no son exactas con ciclos irregulares. No uses esta estimación para evitar ni buscar un embarazo.</string>
+    <string name="day_detail_fertile">Ventana fértil estimada</string>
     <string name="home_today_phase" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo, fase %2$s</string>
     <string name="home_today_cycle_day" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo</string>
 

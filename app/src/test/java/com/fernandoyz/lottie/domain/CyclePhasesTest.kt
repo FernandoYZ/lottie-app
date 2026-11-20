@@ -28,7 +28,7 @@ class CyclePhasesTest {
 
     @Test
     fun `ovulation is 14 days before the next real start`() =
-        assertEquals(CycleDayInfo(15, CyclePhase.Ovulation, basedOnEstimate = false), info(day(6, 15)))
+        assertEquals(CycleDayInfo(15, CyclePhase.Ovulation, basedOnEstimate = false, inFertileWindow = true), info(day(6, 15)))
 
     @Test
     fun `days between menstruation and ovulation are follicular, after it luteal`() {
@@ -39,7 +39,7 @@ class CyclePhasesTest {
 
     @Test
     fun `the current cycle uses the estimated next start`() =
-        assertEquals(CycleDayInfo(15, CyclePhase.Ovulation, basedOnEstimate = true), info(day(7, 13)))
+        assertEquals(CycleDayInfo(15, CyclePhase.Ovulation, basedOnEstimate = true, inFertileWindow = true), info(day(7, 13)))
 
     @Test
     fun `cycles after the estimate repeat the estimated length`() {
@@ -58,6 +58,21 @@ class CyclePhasesTest {
 
         assertEquals(CycleDayInfo(10, phase = null, basedOnEstimate = false), info(day(6, 10), short))
         assertEquals(CyclePhase.Menstrual, info(day(6, 3), short)?.phase)
+    }
+
+    @Test
+    fun `the fertile window is the five days before ovulation and the ovulation day`() {
+        assertEquals(false, info(day(6, 9))?.inFertileWindow)
+        assertEquals(true, info(day(6, 10))?.inFertileWindow)
+        assertEquals(true, info(day(6, 15))?.inFertileWindow)
+        assertEquals(false, info(day(6, 16))?.inFertileWindow)
+        assertEquals(CyclePhase.Follicular, info(day(6, 12))?.phase)
+    }
+
+    @Test
+    fun `fertile days of a month include real and estimated cycles`() {
+        assertEquals((10..15).map { day(6, it) }.toSet(), CyclePhases.fertileDays(YearMonth.of(2026, 6), records, estimate, today))
+        assertEquals((8..13).map { day(7, it) }.toSet(), CyclePhases.fertileDays(YearMonth.of(2026, 7), records, estimate, today))
     }
 
     @Test

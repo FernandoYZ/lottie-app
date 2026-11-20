@@ -56,6 +56,9 @@ fun DayDetailContent(date: LocalDate, mark: DayMark?, info: CycleDayInfo?, modif
                 ?: stringResource(R.string.day_detail_phase_unavailable),
             style = MaterialTheme.typography.bodyLarge,
         )
+        if (info.inFertileWindow) {
+            Text(text = stringResource(R.string.day_detail_fertile), style = MaterialTheme.typography.bodyLarge)
+        }
         if (info.basedOnEstimate && info.phase != null && info.phase != CyclePhase.Menstrual) {
             Text(text = stringResource(R.string.day_detail_based_on_estimate), style = MaterialTheme.typography.bodyMedium)
         }

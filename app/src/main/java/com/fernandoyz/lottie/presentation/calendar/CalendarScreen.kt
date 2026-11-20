@@ -94,6 +94,7 @@ fun CalendarScreen(
             onDayClick = onDayTapped,
             onDayLongClick = onDayLongPressed,
             ovulationDaysFor = uiState::ovulationDaysFor,
+            fertileDaysFor = uiState::fertileDaysFor,
         )
 
         val message = uiState.rejection?.let { stringResource(it.messageRes()) }
