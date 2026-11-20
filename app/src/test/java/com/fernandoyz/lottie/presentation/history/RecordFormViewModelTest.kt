@@ -58,6 +58,18 @@ class RecordFormViewModelTest {
     }
 
     @Test
+    fun `saved new record does not report an overlap with itself`() = runTest {
+        val vm = newForm()
+
+        vm.onStartSelected(LocalDate.of(2026, 5, 1))
+        vm.onEndSelected(LocalDate.of(2026, 5, 4))
+        vm.onSave()
+
+        assertTrue(vm.uiState.value.isDone)
+        assertNull(vm.uiState.value.validationError)
+    }
+
+    @Test
     fun `new record without end date can be saved`() = runTest {
         val vm = newForm()
 

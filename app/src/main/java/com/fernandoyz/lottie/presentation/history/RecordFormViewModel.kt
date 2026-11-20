@@ -36,8 +36,9 @@ data class RecordFormUiState(
 ) {
     val isEditing: Boolean = recordId != null
 
+    /** Not computed once done: the saved record is already in [records] and would overlap itself. */
     val validationError: HistoryValidationError? =
-        startDate?.let { HistoryValidation.validate(it, endDate, records, today, recordId) } ?: rejection
+        if (isDone) null else startDate?.let { HistoryValidation.validate(it, endDate, records, today, recordId) } ?: rejection
 
     val canSave: Boolean =
         startDate != null && validationError == null && !isLoading && !isSaving && !isDone
