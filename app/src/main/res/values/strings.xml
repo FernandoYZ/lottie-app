@@ -28,7 +28,42 @@
     <string name="action_accept">Aceptar</string>
     <string name="action_cancel">Cancelar</string>
 
-    <!-- Home -->
+    <!-- Home / history -->
     <string name="home_title">Inicio</string>
-    <string name="home_body">Tu configuración está guardada. El espacio de seguimiento se habilitará progresivamente.</string>
+    <string name="history_load_error">No se pudo cargar el historial.</string>
+    <string name="history_open_since">Menstruación en curso desde el %1$s</string>
+    <string name="history_mark_end">Marcar fin</string>
+    <string name="history_add">Registrar menstruación</string>
+    <string name="history_section">Historial</string>
+    <string name="history_empty">Todavía no hay registros.</string>
+    <string name="history_range">%1$s – %2$s</string>
+    <string name="history_ongoing">En curso</string>
+    <string name="history_mark_end_failed">No se pudo guardar la fecha de fin. Inténtalo de nuevo.</string>
+    <plurals name="history_duration_days">
+        <item quantity="one">%d día</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+
+    <!-- Record form -->
+    <string name="record_title_new">Registrar menstruación</string>
+    <string name="record_title_edit">Editar menstruación</string>
+    <string name="record_start_label">Fecha de inicio</string>
+    <string name="record_end_label">Fecha de fin (opcional)</string>
+    <string name="record_end_none">Sin fecha de fin</string>
+    <string name="record_end_clear">Quitar fecha de fin</string>
+    <string name="record_save">Guardar</string>
+    <string name="record_save_error">No se pudo guardar el registro. Inténtalo de nuevo.</string>
+    <string name="record_load_error">No se pudo cargar el registro.</string>
+    <string name="record_delete">Eliminar</string>
+    <string name="record_delete_confirm_title">¿Eliminar este registro?</string>
+    <string name="record_delete_confirm_body">Esta acción no se puede deshacer.</string>
+    <string name="record_delete_error">No se pudo eliminar el registro. Inténtalo de nuevo.</string>
+
+    <!-- History validation (STAGE_2 §3) -->
+    <string name="history_error_start_in_future">La fecha de inicio no puede ser posterior a hoy.</string>
+    <string name="history_error_end_before_start">La fecha de fin no puede ser anterior a la fecha de inicio.</string>
+    <string name="history_error_end_in_future">La fecha de fin no puede ser posterior a hoy.</string>
+    <string name="history_error_overlap">Las fechas se solapan con otro registro.</string>
+    <string name="history_error_missing_end">Indica la fecha de fin: hay registros posteriores a este.</string>
+    <string name="history_error_previous_open">Primero marca el fin de la menstruación en curso.</string>
 </resources>

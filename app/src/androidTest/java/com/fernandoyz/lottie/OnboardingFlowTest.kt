@@ -11,6 +11,9 @@ import androidx.compose.ui.test.performTextInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.room.Room
+import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupScreen
@@ -44,6 +47,9 @@ class OnboardingFlowTest {
         PreferenceDataStoreFactory.create(scope = dataStoreScope, produceFile = { dataStoreFile }),
     )
 
+    private val database = Room.inMemoryDatabaseBuilder(context, LottieDatabase::class.java).build()
+    private val historyRepository = HistoryRepository(database.menstruationRecordDao(), repository)
+
     private val today = LocalDate.of(2026, 11, 19)
     private val zone = ZoneId.of("America/Lima")
     private val clock = Clock.fixed(today.atStartOfDay(zone).plusHours(10).toInstant(), zone)
@@ -52,12 +58,13 @@ class OnboardingFlowTest {
 
     @After
     fun tearDown() {
+        database.close()
         dataStoreScope.cancel()
         dataStoreFile.delete()
     }
 
     private fun setApp() {
-        composeRule.setContent { LottieTheme { LottieApp(setupRepository = repository, clock = clock) } }
+        composeRule.setContent { LottieTheme { LottieApp(setupRepository = repository, historyRepository = historyRepository, clock = clock) } }
     }
 
     @Test

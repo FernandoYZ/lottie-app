@@ -12,11 +12,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val setupRepository = (application as LottieApplication).setupRepository
+        val app = application as LottieApplication
         val clock = Clock.systemDefaultZone()
         setContent {
             LottieTheme {
-                LottieApp(setupRepository = setupRepository, clock = clock)
+                LottieApp(setupRepository = app.setupRepository, historyRepository = app.historyRepository, clock = clock)
             }
         }
     }

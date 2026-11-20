@@ -3,27 +3,42 @@ package com.fernandoyz.lottie.core.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
-import com.fernandoyz.lottie.presentation.home.HomeScreen
+import com.fernandoyz.lottie.presentation.history.HistoryRoute
+import com.fernandoyz.lottie.presentation.history.HistoryViewModel
+import com.fernandoyz.lottie.presentation.history.RecordFormRoute
+import com.fernandoyz.lottie.presentation.history.RecordFormViewModel
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupRoute
 import com.fernandoyz.lottie.presentation.onboarding.setup.SetupViewModel
 import com.fernandoyz.lottie.presentation.onboarding.welcome.WelcomeScreen
 import java.time.Clock
 
-/** Route constants for Stage 1 (NAVIGATION.md). */
+/** Route constants (NAVIGATION.md). */
 object LottieDestinations {
     const val WELCOME = "welcome"
     const val INITIAL_SETUP = "initial_setup"
     const val HOME = "home"
+
+    const val RECORD_ID_ARG = "recordId"
+    const val RECORD_FORM = "record_form?$RECORD_ID_ARG={$RECORD_ID_ARG}"
+    private const val NEW_RECORD_ID = -1L
+
+    fun recordForm(recordId: Long? = null) = "record_form?$RECORD_ID_ARG=${recordId ?: NEW_RECORD_ID}"
+
+    fun recordIdFromArg(value: Long): Long? = value.takeIf { it != NEW_RECORD_ID }
 }
 
 @Composable
 fun LottieNavHost(
     startDestination: String,
     setupRepository: SetupRepository,
+    historyRepository: HistoryRepository,
     clock: Clock,
     modifier: Modifier = Modifier,
 ) {
@@ -45,7 +60,28 @@ fun LottieNavHost(
             )
         }
         composable(LottieDestinations.HOME) {
-            HomeScreen()
+            HistoryRoute(
+                viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, clock)),
+                onAddRecord = { navController.navigate(LottieDestinations.recordForm()) },
+                onOpenRecord = { navController.navigate(LottieDestinations.recordForm(it)) },
+            )
+        }
+        composable(
+            route = LottieDestinations.RECORD_FORM,
+            arguments = listOf(
+                navArgument(LottieDestinations.RECORD_ID_ARG) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
+            ),
+        ) { entry ->
+            val recordId = LottieDestinations.recordIdFromArg(
+                entry.arguments?.getLong(LottieDestinations.RECORD_ID_ARG) ?: -1L,
+            )
+            RecordFormRoute(
+                viewModel = viewModel(factory = RecordFormViewModel.factory(historyRepository, clock, recordId)),
+                onDone = { navController.popBackStack() },
+            )
         }
     }
 }

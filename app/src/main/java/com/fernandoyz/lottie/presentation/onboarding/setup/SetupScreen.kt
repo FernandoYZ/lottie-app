@@ -12,21 +12,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -40,12 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.CycleLengthValidation
+import com.fernandoyz.lottie.presentation.common.CalendarDatePickerDialog
+import com.fernandoyz.lottie.presentation.common.formatLongDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** Stateful container: connects [SetupViewModel] with the stateless [SetupScreen]. */
 @Composable
@@ -124,9 +115,9 @@ fun SetupScreen(
     }
 
     if (showDatePicker) {
-        LastMenstruationDatePicker(
+        CalendarDatePickerDialog(
             initialDate = uiState.lastMenstruationDate,
-            today = uiState.today,
+            maxDate = uiState.today,
             onDateSelected = {
                 onDateSelected(it)
                 showDatePicker = false
@@ -141,7 +132,7 @@ private fun DateField(date: LocalDate?, isInFuture: Boolean, onClick: () -> Unit
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = stringResource(R.string.setup_date_label), style = MaterialTheme.typography.titleMedium)
         OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-            Text(date?.let(::formatDate) ?: stringResource(R.string.setup_date_select))
+            Text(date?.let(::formatLongDate) ?: stringResource(R.string.setup_date_select))
         }
         if (isInFuture) {
             Text(
@@ -181,48 +172,6 @@ private fun CycleLengthField(
         modifier = Modifier.fillMaxWidth(),
     )
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LastMenstruationDatePicker(
-    initialDate: LocalDate?,
-    today: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    // Material3 DatePicker works with UTC midnight milliseconds; convert with UTC to keep the calendar day.
-    val todayUtcMillis = remember(today) { today.toUtcMillis() }
-    val state = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate?.toUtcMillis(),
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= todayUtcMillis
-            override fun isSelectableYear(year: Int) = year <= today.year
-        },
-    )
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = { state.selectedDateMillis?.let { onDateSelected(it.utcMillisToLocalDate()) } ?: onDismiss() },
-            ) { Text(stringResource(R.string.action_accept)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    ) {
-        DatePicker(state = state)
-    }
-}
-
-private val spanishDateFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es"))
-
-private fun formatDate(date: LocalDate): String = date.format(spanishDateFormatter)
-
-private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-private fun Long.utcMillisToLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 @Preview(showBackground = true)
 @Composable
