@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
@@ -54,6 +55,7 @@ class OnboardingFlowTest {
 
     private val database = Room.inMemoryDatabaseBuilder(context, LottieDatabase::class.java).build()
     private val historyRepository = HistoryRepository(database.menstruationRecordDao(), repository)
+    private val dailyLogRepository = DailyLogRepository(database.dailyLogDao())
 
     private val today = LocalDate.of(2026, 11, 19)
     private val zone = ZoneId.of("America/Lima")
@@ -69,7 +71,7 @@ class OnboardingFlowTest {
     }
 
     private fun setApp() {
-        composeRule.setContent { LottieTheme { LottieApp(setupRepository = repository, historyRepository = historyRepository, clock = clock) } }
+        composeRule.setContent { LottieTheme { LottieApp(repository, historyRepository, dailyLogRepository, clock) } }
     }
 
     @Test

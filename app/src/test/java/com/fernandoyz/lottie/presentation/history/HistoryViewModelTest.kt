@@ -3,12 +3,16 @@ package com.fernandoyz.lottie.presentation.history
 import com.fernandoyz.lottie.MainDispatcherRule
 import com.fernandoyz.lottie.data.FailingDataStore
 import com.fernandoyz.lottie.data.InMemoryDataStore
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
+import com.fernandoyz.lottie.data.dailylog.FakeDailyLogDao
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.HomeHeadline
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.InitialSetup
+import com.fernandoyz.lottie.domain.model.Mood
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -35,14 +39,25 @@ class HistoryViewModelTest {
     private val dao = FakeMenstruationRecordDao()
     private val setupRepository = SetupRepository(InMemoryDataStore())
     private val repository = HistoryRepository(dao, setupRepository)
+    private val dailyLogRepository = DailyLogRepository(FakeDailyLogDao())
 
     private suspend fun completeSetup() = setupRepository.save(InitialSetup(setupStart, setupEnd))
+
+    @Test
+    fun `home knows when today already has a log`() = runTest {
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
+        assertFalse(vm.uiState.value.hasTodayLog)
+
+        dailyLogRepository.save(DailyLog(today, moods = setOf(Mood.Happy)))
+
+        assertTrue(vm.uiState.value.hasTodayLog)
+    }
 
     @Test
     fun `menstruation marked during setup is the first record`() = runTest {
         completeSetup()
 
-        val state = HistoryViewModel(repository, setupRepository, clock).uiState.value
+        val state = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock).uiState.value
 
         assertFalse(state.isLoading)
         assertEquals(setupStart, state.records.single().startDate)
@@ -54,7 +69,7 @@ class HistoryViewModelTest {
         repository.add(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 5), today)
         repository.add(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 4, 6), today)
 
-        val state = HistoryViewModel(repository, setupRepository, clock).uiState.value
+        val state = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock).uiState.value
 
         assertEquals(listOf(LocalDate.of(2026, 4, 2), LocalDate.of(2026, 3, 1)), state.records.map { it.startDate })
     }
@@ -63,7 +78,7 @@ class HistoryViewModelTest {
     fun `load failure is reported`() {
         val failingRepository = HistoryRepository(dao, SetupRepository(FailingDataStore(failReads = true)))
 
-        val state = HistoryViewModel(failingRepository, setupRepository, clock).uiState.value
+        val state = HistoryViewModel(failingRepository, setupRepository, dailyLogRepository, clock).uiState.value
 
         assertTrue(state.loadFailed)
         assertFalse(state.isLoading)
@@ -73,7 +88,7 @@ class HistoryViewModelTest {
     fun `a single record uses the 28 day default and is approximate`() = runTest {
         completeSetup() // 01/06 - 04/06, 4 days
 
-        val estimate = HistoryViewModel(repository, setupRepository, clock).uiState.value.estimate!!
+        val estimate = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock).uiState.value.estimate!!
 
         assertEquals(LocalDate.of(2026, 6, 29), estimate.start)
         assertEquals(LocalDate.of(2026, 7, 2), estimate.end)
@@ -83,7 +98,7 @@ class HistoryViewModelTest {
     @Test
     fun `estimate adapts when a second start is registered`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         repository.add(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 5), today) // 30 days before 01/06
 
@@ -94,7 +109,7 @@ class HistoryViewModelTest {
     @Test
     fun `estimate follows a manual cycle length`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         setupRepository.setManualCycleLength(30)
 
@@ -105,7 +120,7 @@ class HistoryViewModelTest {
     fun `today's cycle day and phase are shown`() = runTest {
         completeSetup() // 01/06 - 04/06, next start estimated 29/06, ovulation 15/06 = today
 
-        val status = HistoryViewModel(repository, setupRepository, clock).uiState.value.homeStatus
+        val status = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock).uiState.value.homeStatus
 
         assertEquals(15, status.cycleDay)
         assertEquals(CyclePhase.Ovulation, status.phase)
@@ -115,7 +130,7 @@ class HistoryViewModelTest {
     @Test
     fun `start button registers today filled with the period length`() = runTest {
         completeSetup() // 4 day menstruation, so the fill is 4 days
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         vm.onMainActionTapped()
 
@@ -127,7 +142,7 @@ class HistoryViewModelTest {
     @Test
     fun `finish button ends the ongoing menstruation today`() = runTest {
         repository.add(LocalDate.of(2026, 6, 13), LocalDate.of(2026, 6, 18), today)
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         vm.onMainActionTapped()
 
@@ -138,7 +153,7 @@ class HistoryViewModelTest {
     @Test
     fun `finishing on the start day asks before saving a one day menstruation`() = runTest {
         repository.add(today, LocalDate.of(2026, 6, 20), today)
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         vm.onMainActionTapped()
 
@@ -154,7 +169,7 @@ class HistoryViewModelTest {
     @Test
     fun `cancelling the one day confirmation changes nothing`() = runTest {
         repository.add(today, LocalDate.of(2026, 6, 20), today)
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         vm.onMainActionTapped()
         vm.onDismissOneDay()
@@ -166,7 +181,7 @@ class HistoryViewModelTest {
     @Test
     fun `no records means no estimate`() = runTest {
         completeSetup()
-        val vm = HistoryViewModel(repository, setupRepository, clock)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
 
         vm.uiState.value.records.forEach { repository.delete(it.id) }
 

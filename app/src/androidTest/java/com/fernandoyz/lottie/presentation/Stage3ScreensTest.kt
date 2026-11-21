@@ -53,6 +53,7 @@ class Stage3ScreensTest {
                     onMainAction = {},
                     onConfirmOneDay = {},
                     onDismissOneDay = {},
+                    onOpenDailyLog = {},
                 )
             }
         }

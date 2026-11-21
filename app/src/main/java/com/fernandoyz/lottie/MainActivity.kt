@@ -16,7 +16,12 @@ class MainActivity : ComponentActivity() {
         val clock = Clock.systemDefaultZone()
         setContent {
             LottieTheme {
-                LottieApp(setupRepository = app.setupRepository, historyRepository = app.historyRepository, clock = clock)
+                LottieApp(
+                    setupRepository = app.setupRepository,
+                    historyRepository = app.historyRepository,
+                    dailyLogRepository = app.dailyLogRepository,
+                    clock = clock,
+                )
             }
         }
     }

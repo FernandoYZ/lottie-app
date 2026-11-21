@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
@@ -37,6 +38,8 @@ data class HistoryUiState(
     val estimate: PeriodEstimate? = null,
     /** Menstruation that "Terminó mi menstruación" would leave at one day, waiting for confirmation (HOME §5). */
     val pendingOneDay: MenstruationRecord? = null,
+    /** Today already has a daily log: Home says "Editar registro de hoy" (DAILY_LOG §5). */
+    val hasTodayLog: Boolean = false,
     val isWriting: Boolean = false,
     val writeFailed: Boolean = false,
     val rejection: HistoryValidationError? = null,
@@ -49,6 +52,7 @@ data class HistoryUiState(
 class HistoryViewModel(
     private val repository: HistoryRepository,
     private val setupRepository: SetupRepository,
+    private val dailyLogRepository: DailyLogRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -123,13 +127,18 @@ class HistoryViewModel(
         loadJob = viewModelScope.launch {
             try {
                 repository.seedInitialRecordIfNeeded()
-                combine(repository.records, setupRepository.manualCycleLengthDays) { records, manual -> records to manual }
-                    .collect { (records, manual) ->
+                combine(
+                    repository.records,
+                    setupRepository.manualCycleLengthDays,
+                    dailyLogRepository.logs,
+                ) { records, manual, logs -> Triple(records, manual, logs) }
+                    .collect { (records, manual, logs) ->
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 records = records,
                                 estimate = PeriodEstimation.estimate(records, manual, it.today),
+                                hasTodayLog = it.today in logs,
                             )
                         }
                     }
@@ -146,9 +155,10 @@ class HistoryViewModel(
         fun factory(
             repository: HistoryRepository,
             setupRepository: SetupRepository,
+            dailyLogRepository: DailyLogRepository,
             clock: Clock,
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { HistoryViewModel(repository, setupRepository, clock) }
+            initializer { HistoryViewModel(repository, setupRepository, dailyLogRepository, clock) }
         }
     }
 }

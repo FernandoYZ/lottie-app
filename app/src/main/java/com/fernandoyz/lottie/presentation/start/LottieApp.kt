@@ -21,13 +21,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.core.navigation.LottieDestinations
 import com.fernandoyz.lottie.core.navigation.LottieNavHost
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import java.time.Clock
 
 /** App root: waits for the persisted setup before choosing the start destination. */
 @Composable
-fun LottieApp(setupRepository: SetupRepository, historyRepository: HistoryRepository, clock: Clock) {
+fun LottieApp(
+    setupRepository: SetupRepository,
+    historyRepository: HistoryRepository,
+    dailyLogRepository: DailyLogRepository,
+    clock: Clock,
+) {
     val startViewModel: StartViewModel = viewModel(factory = StartViewModel.factory(setupRepository))
     val startState by startViewModel.startState.collectAsStateWithLifecycle()
 
@@ -40,6 +46,7 @@ fun LottieApp(setupRepository: SetupRepository, historyRepository: HistoryReposi
                 startDestination = LottieDestinations.WELCOME,
                 setupRepository = setupRepository,
                 historyRepository = historyRepository,
+                dailyLogRepository = dailyLogRepository,
                 clock = clock,
                 modifier = contentModifier,
             )
@@ -47,6 +54,7 @@ fun LottieApp(setupRepository: SetupRepository, historyRepository: HistoryReposi
                 startDestination = LottieDestinations.HOME,
                 setupRepository = setupRepository,
                 historyRepository = historyRepository,
+                dailyLogRepository = dailyLogRepository,
                 clock = clock,
                 modifier = contentModifier,
             )

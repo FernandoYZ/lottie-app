@@ -25,7 +25,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fernandoyz.lottie.R
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.presentation.dailylog.DailyLogRoute
+import com.fernandoyz.lottie.presentation.dailylog.DailyLogViewModel
+import java.time.LocalDate
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.presentation.calendar.CalendarRoute
 import com.fernandoyz.lottie.presentation.calendar.CalendarViewModel
@@ -47,6 +53,10 @@ object LottieDestinations {
     const val CALENDAR = "calendar"
     const val HISTORY = "history"
     const val SETTINGS = "settings"
+    const val DAILY_LOG_EPOCH_DAY = "epochDay"
+    const val DAILY_LOG = "daily_log/{$DAILY_LOG_EPOCH_DAY}"
+
+    fun dailyLog(date: LocalDate) = "daily_log/${date.toEpochDay()}"
 }
 
 /** Top-level tabs of the bottom bar (bottom-bar S1). Welcome and setup stay outside it. */
@@ -63,6 +73,7 @@ fun LottieNavHost(
     startDestination: String,
     setupRepository: SetupRepository,
     historyRepository: HistoryRepository,
+    dailyLogRepository: DailyLogRepository,
     clock: Clock,
     modifier: Modifier = Modifier,
 ) {
@@ -98,13 +109,28 @@ fun LottieNavHost(
                 )
             }
             composable(LottieDestinations.HOME) {
-                HomeRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)))
+                HomeRoute(
+                    viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
+                    onOpenDailyLog = { date -> navController.navigate(LottieDestinations.dailyLog(date)) },
+                )
+            }
+            composable(
+                route = LottieDestinations.DAILY_LOG,
+                arguments = listOf(navArgument(LottieDestinations.DAILY_LOG_EPOCH_DAY) { type = NavType.LongType }),
+            ) { entry ->
+                val date = LocalDate.ofEpochDay(entry.arguments?.getLong(LottieDestinations.DAILY_LOG_EPOCH_DAY) ?: 0L)
+                DailyLogRoute(
+                    viewModel = viewModel(
+                        factory = DailyLogViewModel.factory(dailyLogRepository, historyRepository, setupRepository, clock, date),
+                    ),
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(LottieDestinations.CALENDAR) {
                 CalendarRoute(viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, clock)))
             }
             composable(LottieDestinations.HISTORY) {
-                HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, clock)))
+                HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)))
             }
             composable(LottieDestinations.SETTINGS) {
                 SettingsRoute(viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository, historyRepository)))

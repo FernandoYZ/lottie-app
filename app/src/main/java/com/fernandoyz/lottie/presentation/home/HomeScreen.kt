@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,7 +53,7 @@ import kotlin.math.sin
 
 /** Stateful container: connects [HistoryViewModel] with the stateless [HomeScreen]. */
 @Composable
-fun HomeRoute(viewModel: HistoryViewModel, modifier: Modifier = Modifier) {
+fun HomeRoute(viewModel: HistoryViewModel, onOpenDailyLog: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         uiState = uiState,
@@ -60,6 +61,7 @@ fun HomeRoute(viewModel: HistoryViewModel, modifier: Modifier = Modifier) {
         onMainAction = viewModel::onMainActionTapped,
         onConfirmOneDay = viewModel::onConfirmOneDay,
         onDismissOneDay = viewModel::onDismissOneDay,
+        onOpenDailyLog = { onOpenDailyLog(uiState.today) },
         modifier = modifier,
     )
 }
@@ -72,6 +74,7 @@ fun HomeScreen(
     onMainAction: () -> Unit,
     onConfirmOneDay: () -> Unit,
     onDismissOneDay: () -> Unit,
+    onOpenDailyLog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -90,7 +93,7 @@ fun HomeScreen(
             Button(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
         }
 
-        else -> HomeContent(uiState, onMainAction, modifier)
+        else -> HomeContent(uiState, onMainAction, onOpenDailyLog, modifier)
     }
 
     if (uiState.pendingOneDay != null) {
@@ -104,7 +107,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, modifier: Modifier) {
+private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, onOpenDailyLog: () -> Unit, modifier: Modifier) {
     val status = uiState.homeStatus
     Column(
         modifier = modifier
@@ -144,6 +147,9 @@ private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, modif
                     if (status.action is HomeAction.Finish) R.string.home_action_finish else R.string.home_action_start,
                 ),
             )
+        }
+        OutlinedButton(onClick = onOpenDailyLog, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(if (uiState.hasTodayLog) R.string.home_edit_log_today else R.string.home_log_today))
         }
         uiState.rejection?.let { Text(stringResource(it.messageRes()), color = MaterialTheme.colorScheme.error) }
         if (uiState.writeFailed) {
@@ -265,6 +271,7 @@ private fun HomeScreenPreview() {
             onMainAction = {},
             onConfirmOneDay = {},
             onDismissOneDay = {},
+            onOpenDailyLog = {},
         )
     }
 }
