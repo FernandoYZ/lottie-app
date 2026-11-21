@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
@@ -24,4 +25,6 @@ class LottieApplication : Application() {
     val historyRepository: HistoryRepository by lazy {
         HistoryRepository(database.menstruationRecordDao(), setupRepository)
     }
+
+    val dailyLogRepository: DailyLogRepository by lazy { DailyLogRepository(database.dailyLogDao()) }
 }
