@@ -60,6 +60,9 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.biometric)
+    // biometric 1.1.0 brings fragment 1.2.5, whose FragmentActivity rejects the request codes of the
+    // Activity Result API (crash when asking for the notification permission).
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
