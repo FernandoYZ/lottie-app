@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,8 +47,15 @@ import java.time.YearMonth
 
 /** Stateful container: connects [CalendarViewModel] with the stateless [CalendarScreen]. */
 @Composable
-fun CalendarRoute(viewModel: CalendarViewModel, onOpenDailyLog: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
+fun CalendarRoute(
+    viewModel: CalendarViewModel,
+    onOpenDailyLog: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+    startEditing: Boolean = false,
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // Opened from "Editar menstruación" on Home (HOME §7.1).
+    LaunchedEffect(viewModel, startEditing) { if (startEditing) viewModel.onStartEditing() }
     CalendarScreen(
         onOpenDailyLog = { date ->
             viewModel.onDismissDayDetail()

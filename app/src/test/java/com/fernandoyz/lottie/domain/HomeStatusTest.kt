@@ -119,4 +119,35 @@ class HomeStatusTest {
 
         assertEquals(LocalDate.of(2026, 7, 8) to LocalDate.of(2026, 7, 13), window)
     }
+
+    @Test
+    fun `a menstruation whose last marked day is today offers to edit it`() {
+        val status = status(LocalDate.of(2026, 6, 4))
+
+        assertEquals(HomeAction.Edit, status.action)
+    }
+
+    @Test
+    fun `a menstruation without end date still offers to finish it`() {
+        val open = MenstruationRecord(1, LocalDate.of(2026, 6, 1), null)
+
+        assertEquals(HomeAction.Finish(open), status(LocalDate.of(2026, 6, 4), records = listOf(open)).action)
+    }
+
+    @Test
+    fun `knows the cycle length and the days to the next menstruation`() {
+        val status = status(LocalDate.of(2026, 6, 11))
+
+        assertEquals(28, status.cycleLengthDays)
+        assertEquals(18, status.daysToNextPeriod)
+        assertEquals(0, status(LocalDate.of(2026, 6, 29)).daysToNextPeriod)
+    }
+
+    @Test
+    fun `during a delay there is no cycle length nor countdown`() {
+        val status = status(LocalDate.of(2026, 7, 2))
+
+        assertNull(status.cycleLengthDays)
+        assertNull(status.daysToNextPeriod)
+    }
 }

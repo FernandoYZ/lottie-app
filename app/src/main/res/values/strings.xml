@@ -104,7 +104,7 @@
 
     <!-- Home (HOME §2-§5) -->
     <string name="home_headline_no_records">Registra tu última menstruación</string>
-    <string name="home_headline_menstruation_day" tools:ignore="PluralsCandidate">Día %1$d de menstruación</string>
+    <string name="home_headline_menstruation_day" tools:ignore="PluralsCandidate">Menstruación · día %1$d</string>
     <plurals name="home_headline_delay">
         <item quantity="one">Retraso de %d día</item>
         <item quantity="other">Retraso de %d días</item>
@@ -119,7 +119,16 @@
         <item quantity="one">Menstruación en %d día</item>
         <item quantity="other">Menstruación en %d días</item>
     </plurals>
-    <string name="home_phase_day" tools:ignore="PluralsCandidate">Fase %1$s · Día %2$d</string>
+    <string name="home_cycle_day_of" tools:ignore="PluralsCandidate">Día %1$d de %2$d del ciclo</string>
+    <string name="home_action_edit">Editar menstruación</string>
+    <string name="home_next_period">Próxima menstruación: %1$s</string>
+    <plurals name="home_next_period_in">
+        <item quantity="one">Próxima menstruación: %1$s (en %2$d día)</item>
+        <item quantity="other">Próxima menstruación: %1$s (en %2$d días)</item>
+    </plurals>
+    <string name="home_next_period_today">Próxima menstruación: %1$s (hoy)</string>
+    <string name="home_fertile_window">Ventana fértil: %1$s – %2$s</string>
+    <string name="home_estimate_info_action">Sobre esta estimación</string>
     <string name="home_action_start">Empezó mi menstruación</string>
     <string name="home_action_finish">Terminó mi menstruación</string>
     <string name="home_one_day_body">Quedará registrada una menstruación de 1 día. ¿Quieres guardarla?</string>

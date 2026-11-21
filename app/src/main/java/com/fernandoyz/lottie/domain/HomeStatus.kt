@@ -22,6 +22,9 @@ sealed interface HomeAction {
 
     /** "Terminó mi menstruación": [record] ends today. */
     data class Finish(val record: MenstruationRecord) : HomeAction
+
+    /** "Editar menstruación": the ongoing menstruation already ends today, so finishing would change nothing (HOME §7.1). */
+    data object Edit : HomeAction
 }
 
 enum class RingKind { Menstrual, Follicular, Fertile, Luteal, Other }
@@ -52,6 +55,10 @@ data class HomeStatus(
     /** Current fertile window if it has not ended, otherwise the next cycle's one. */
     val nextFertileWindow: Pair<LocalDate, LocalDate>?,
     val action: HomeAction,
+    /** Length of the current cycle, the M of "Día N de M del ciclo"; null during a delay (HOME §7.3). */
+    val cycleLengthDays: Int? = null,
+    /** Days until the estimated start; null once it has passed (HOME §7.4). */
+    val daysToNextPeriod: Int? = null,
 ) {
     companion object {
 
@@ -62,7 +69,11 @@ data class HomeStatus(
             }
 
             val ongoing = records.firstOrNull { !today.isBefore(it.startDate) && !today.isAfter(it.shownEnd(today)) }
-            val action = ongoing?.let { HomeAction.Finish(it) } ?: HomeAction.Start
+            val action = when {
+                ongoing == null -> HomeAction.Start
+                ongoing.endDate == today -> HomeAction.Edit
+                else -> HomeAction.Finish(ongoing)
+            }
             val cycleDay = days(latest.startDate, today) + 1
             val delayed = ongoing == null && today.isAfter(estimate.start)
             val length = days(latest.startDate, estimate.start)
@@ -71,7 +82,7 @@ data class HomeStatus(
                 val ring = if (length > 0) CycleRing(length, length - 1, emptyList(), delayed = true) else null
                 val headline = ongoing?.let { HomeHeadline.MenstruationDay(days(it.startDate, today) + 1) }
                     ?: HomeHeadline.Delay(days(estimate.start, today))
-                return HomeStatus(headline, ring, cycleDay, null, null, action)
+                return HomeStatus(headline, ring, cycleDay, null, null, action, daysToNextPeriod = days(today, estimate.start).takeIf { it >= 0 })
             }
 
             val cycleDays = (0 until length).map { latest.startDate.plusDays(it.toLong()) }
@@ -94,6 +105,8 @@ data class HomeStatus(
                 phase = phase,
                 nextFertileWindow = nextFertileWindow(cycleDays, infos, estimate, length, records, today),
                 action = action,
+                cycleLengthDays = length,
+                daysToNextPeriod = days(today, estimate.start),
             )
         }
 

@@ -125,6 +125,47 @@ fun MonthCalendar(
     }
 }
 
+/**
+ * One week row with the same day cells as the month grid (HOME §7.2). [days] are Monday to Sunday;
+ * marks may come from two months when the week crosses one.
+ */
+@Composable
+fun WeekStrip(
+    days: List<LocalDate>,
+    today: LocalDate,
+    marksFor: (YearMonth) -> Map<LocalDate, DayMark>,
+    onDayClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+    ovulationDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
+    fertileDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
+    loggedDays: Set<LocalDate> = emptySet(),
+) {
+    val months = days.map(YearMonth::from).distinct()
+    val marks = months.flatMap { marksFor(it).entries }.associate { it.key to it.value }
+    val ovulationDays = months.flatMap(ovulationDaysFor).toSet()
+    val fertileDays = months.flatMap(fertileDaysFor).toSet()
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        WeekdayHeader()
+        Row(modifier = Modifier.fillMaxWidth()) {
+            days.forEach { date ->
+                Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                    DayCell(
+                        date = date,
+                        mark = marks[date],
+                        isToday = date == today,
+                        isOvulation = date in ovulationDays,
+                        isFertile = date in fertileDays,
+                        isLogged = date in loggedDays,
+                        cycleDay = null,
+                        onClick = { onDayClick(date) },
+                        onLongClick = null,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun WeekdayHeader() {
     Row(modifier = Modifier.fillMaxWidth()) {

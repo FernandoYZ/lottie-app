@@ -9,13 +9,18 @@ import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
+import com.fernandoyz.lottie.domain.CalendarMarks
+import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CyclePhases
 import com.fernandoyz.lottie.domain.CycleStatistics
 import com.fernandoyz.lottie.domain.DayAction
+import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.HomeAction
 import com.fernandoyz.lottie.domain.HomeStatus
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.PeriodEstimation
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -26,7 +31,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 
 data class HistoryUiState(
     val today: LocalDate,
@@ -43,9 +50,26 @@ data class HistoryUiState(
     val isWriting: Boolean = false,
     val writeFailed: Boolean = false,
     val rejection: HistoryValidationError? = null,
+    /** Daily logs by date, for the week marks and the day detail. */
+    val logs: Map<LocalDate, DailyLog> = emptyMap(),
+    /** Week day whose detail is open (HOME §7.2). */
+    val selectedDay: LocalDate? = null,
 ) {
     /** Ring, headline, phase and main action of Home (HOME §2-§5). */
     val homeStatus: HomeStatus = HomeStatus.of(records, estimate, today)
+
+    /** Current week, Monday to Sunday (HOME §7.2). */
+    val week: List<LocalDate> = today.with(DayOfWeek.MONDAY).let { monday -> (0L..6L).map(monday::plusDays) }
+
+    val selectedDayInfo: CycleDayInfo? = selectedDay?.let { CyclePhases.dayInfo(it, records, estimate, today) }
+
+    val selectedDayLog: DailyLog? = selectedDay?.let { logs[it] }
+
+    fun marksFor(month: YearMonth): Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
+
+    fun ovulationDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.ovulationDays(month, records, estimate, today)
+
+    fun fertileDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.fertileDays(month, records, estimate, today)
 }
 
 /** Home and History: estimate, history and the Home main action (HOME §5). Other edits happen in the calendar. */
@@ -81,6 +105,9 @@ class HistoryViewModel(
                     finish(action.record)
                 }
 
+            // The screen opens the calendar in edit mode instead (HOME §7.1).
+            HomeAction.Edit -> Unit
+
             HomeAction.Start -> {
                 val periodLength = CycleStatistics.periodLengthDays(state.records, state.today)
                 when (val day = CalendarEditing.actionFor(state.today, state.records, state.today, periodLength)) {
@@ -100,6 +127,13 @@ class HistoryViewModel(
     }
 
     fun onDismissOneDay() = _uiState.update { it.copy(pendingOneDay = null) }
+
+    fun onDayTapped(date: LocalDate) {
+        if (_uiState.value.isLoading || _uiState.value.loadFailed) return
+        _uiState.update { it.copy(selectedDay = date) }
+    }
+
+    fun onDismissDayDetail() = _uiState.update { it.copy(selectedDay = null) }
 
     private fun finish(record: MenstruationRecord) {
         val today = _uiState.value.today
@@ -139,6 +173,7 @@ class HistoryViewModel(
                                 records = records,
                                 estimate = PeriodEstimation.estimate(records, manual, it.today),
                                 hasTodayLog = it.today in logs,
+                                logs = logs,
                             )
                         }
                     }

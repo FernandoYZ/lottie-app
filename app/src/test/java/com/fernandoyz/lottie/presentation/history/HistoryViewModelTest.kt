@@ -187,4 +187,39 @@ class HistoryViewModelTest {
 
         assertNull(vm.uiState.value.estimate)
     }
+
+    @Test
+    fun `home shows the current week from monday to sunday`() {
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
+
+        assertEquals((15..21).map { LocalDate.of(2026, 6, it) }, vm.uiState.value.week) // 15/06/2026 is a Monday
+    }
+
+    @Test
+    fun `tapping a week day opens its detail and changes nothing`() = runTest {
+        repository.add(LocalDate.of(2026, 6, 13), LocalDate.of(2026, 6, 16), today)
+        dailyLogRepository.save(DailyLog(LocalDate.of(2026, 6, 14), moods = setOf(Mood.Happy)))
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
+
+        vm.onDayTapped(LocalDate.of(2026, 6, 14))
+
+        assertEquals(LocalDate.of(2026, 6, 14), vm.uiState.value.selectedDay)
+        assertEquals(2, vm.uiState.value.selectedDayInfo?.cycleDay)
+        assertEquals(setOf(Mood.Happy), vm.uiState.value.selectedDayLog?.moods)
+        assertEquals(LocalDate.of(2026, 6, 16), vm.uiState.value.records.single().endDate)
+
+        vm.onDismissDayDetail()
+        assertNull(vm.uiState.value.selectedDay)
+    }
+
+    @Test
+    fun `the main action changes nothing when the menstruation already ends today`() = runTest {
+        repository.add(LocalDate.of(2026, 6, 12), today, today)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
+
+        vm.onMainActionTapped()
+
+        assertEquals(today, vm.uiState.value.records.single().endDate)
+        assertNull(vm.uiState.value.pendingOneDay)
+    }
 }

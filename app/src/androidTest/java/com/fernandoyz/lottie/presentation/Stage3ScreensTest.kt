@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.R
@@ -47,11 +48,19 @@ class Stage3ScreensTest {
     private val record = MenstruationRecord(1, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4))
     private val estimate = PeriodEstimate(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 2), isPast = false, isApproximate = false)
 
-    private fun setHome(estimate: PeriodEstimate?) {
+    private val nextPeriod get() = text(R.string.home_next_period).substringBefore('%').trim()
+
+    private fun setHome(
+        estimate: PeriodEstimate?,
+        records: List<MenstruationRecord> = listOf(record),
+        homeToday: LocalDate = today,
+        onEditMenstruations: () -> Unit = {},
+    ) {
         composeRule.setContent {
             LottieTheme {
                 HomeScreen(
-                    uiState = HistoryUiState(today = today, isLoading = false, records = listOf(record), estimate = estimate),
+                    uiState = HistoryUiState(today = homeToday, isLoading = false, records = records, estimate = estimate),
+                    onEditMenstruations = onEditMenstruations,
                     onRetry = {},
                     onMainAction = {},
                     onConfirmOneDay = {},
@@ -66,11 +75,11 @@ class Stage3ScreensTest {
     fun homeShowsTodayPhaseAndEstimateWithDisclaimer() {
         setHome(estimate)
 
-        composeRule.onNodeWithText(text(R.string.estimate_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(nextPeriod, substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_disclaimer)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertDoesNotExist()
         composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertDoesNotExist()
-        composeRule.onNodeWithText(context.getString(R.string.home_phase_day, text(R.string.phase_ovulation).lowercase(), 15)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_cycle_day_of, 15, 28)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.home_headline_ovulation_today)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.home_action_start)).assertIsDisplayed()
     }
@@ -80,6 +89,7 @@ class Stage3ScreensTest {
         setHome(estimate.copy(isPast = true, isApproximate = true))
 
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(text(R.string.home_estimate_info_action)).performClick()
         composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertIsDisplayed()
     }
 
@@ -87,7 +97,17 @@ class Stage3ScreensTest {
     fun noEstimateHidesCard() {
         setHome(null)
 
-        composeRule.onNodeWithText(text(R.string.estimate_title)).assertDoesNotExist()
+        composeRule.onNodeWithText(nextPeriod, substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun homeOffersToEditAMenstruationThatEndsToday() {
+        var edited = false
+        setHome(estimate, records = listOf(MenstruationRecord(1, LocalDate.of(2026, 6, 12), today)), onEditMenstruations = { edited = true })
+
+        composeRule.onNodeWithText(text(R.string.home_action_finish)).assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.home_action_edit)).performScrollTo().performClick()
+        assertEquals(true, edited)
     }
 
     private fun setCalendar(state: CalendarUiState, onDayTapped: (LocalDate) -> Unit = {}, onEditToggled: () -> Unit = {}) {

@@ -143,6 +143,8 @@ class CalendarViewModel(
 
     fun onEditToggled() = _uiState.update { it.copy(isEditing = !it.isEditing, rejection = null, writeFailed = false) }
 
+    fun onStartEditing() = _uiState.update { it.copy(isEditing = true) }
+
     fun onConfirmDelete() {
         val record = _uiState.value.pendingDelete ?: return
         _uiState.update { it.copy(pendingDelete = null) }

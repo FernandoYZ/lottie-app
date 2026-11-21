@@ -54,6 +54,10 @@ object LottieDestinations {
     const val INITIAL_SETUP = "initial_setup"
     const val HOME = "home"
     const val CALENDAR = "calendar"
+    const val CALENDAR_EDIT = "edit"
+    /** Calendar tab; with edit=true it opens in edit mode (HOME §7.1). */
+    const val CALENDAR_ROUTE = "calendar?$CALENDAR_EDIT={$CALENDAR_EDIT}"
+    const val CALENDAR_EDITING = "calendar?$CALENDAR_EDIT=true"
     const val HISTORY = "history"
     const val SETTINGS = "settings"
     const val DAILY_LOG_EPOCH_DAY = "epochDay"
@@ -89,7 +93,8 @@ fun LottieNavHost(
         if (openDailyLogToday) navController.navigate(LottieDestinations.dailyLog(LocalDate.now(clock)))
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // Without query arguments, so "calendar?edit=..." still selects the Calendar tab.
+    val currentRoute = backStackEntry?.destination?.route?.substringBefore('?')
 
     // The outer Scaffold in LottieApp already applies the system insets.
     Scaffold(
@@ -122,6 +127,13 @@ fun LottieNavHost(
                 HomeRoute(
                     viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
                     onOpenDailyLog = { date -> navController.navigate(LottieDestinations.dailyLog(date)) },
+                    onEditMenstruations = {
+                        navController.navigate(LottieDestinations.CALENDAR_EDITING) {
+                            popUpTo(LottieDestinations.HOME) { saveState = true }
+                            launchSingleTop = true
+                            // No restoreState: a restored calendar would keep its old, non-editing arguments.
+                        }
+                    },
                 )
             }
             composable(
@@ -136,8 +148,12 @@ fun LottieNavHost(
                     onBack = { navController.popBackStack() },
                 )
             }
-            composable(LottieDestinations.CALENDAR) {
+            composable(
+                route = LottieDestinations.CALENDAR_ROUTE,
+                arguments = listOf(navArgument(LottieDestinations.CALENDAR_EDIT) { type = NavType.BoolType; defaultValue = false }),
+            ) { entry ->
                 CalendarRoute(
+                    startEditing = entry.arguments?.getBoolean(LottieDestinations.CALENDAR_EDIT) == true,
                     viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
                     onOpenDailyLog = { date -> navController.navigate(LottieDestinations.dailyLog(date)) },
                 )

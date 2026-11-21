@@ -4,22 +4,30 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -40,20 +48,26 @@ import com.fernandoyz.lottie.domain.HomeStatus
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.RingKind
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
-import com.fernandoyz.lottie.presentation.calendar.nameRes
-import com.fernandoyz.lottie.presentation.common.formatDayHeader
+import com.fernandoyz.lottie.presentation.calendar.DayDetailSheet
+import com.fernandoyz.lottie.presentation.common.WeekStrip
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.presentation.history.HistoryUiState
 import com.fernandoyz.lottie.presentation.history.HistoryViewModel
 import com.fernandoyz.lottie.presentation.history.messageRes
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlin.math.cos
 import kotlin.math.sin
 
 /** Stateful container: connects [HistoryViewModel] with the stateless [HomeScreen]. */
 @Composable
-fun HomeRoute(viewModel: HistoryViewModel, onOpenDailyLog: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
+fun HomeRoute(
+    viewModel: HistoryViewModel,
+    onOpenDailyLog: (LocalDate) -> Unit,
+    onEditMenstruations: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         uiState = uiState,
@@ -62,11 +76,18 @@ fun HomeRoute(viewModel: HistoryViewModel, onOpenDailyLog: (LocalDate) -> Unit, 
         onConfirmOneDay = viewModel::onConfirmOneDay,
         onDismissOneDay = viewModel::onDismissOneDay,
         onOpenDailyLog = { onOpenDailyLog(uiState.today) },
+        onEditMenstruations = onEditMenstruations,
+        onDayTapped = viewModel::onDayTapped,
+        onDismissDayDetail = viewModel::onDismissDayDetail,
+        onOpenDailyLogFor = { date ->
+            viewModel.onDismissDayDetail()
+            onOpenDailyLog(date)
+        },
         modifier = modifier,
     )
 }
 
-/** Home tab: cycle ring, today's phase, main action and next dates (HOME §2-§5). */
+/** Home tab: week, cycle ring, cycle day, main action and next dates (HOME §2-§5, §7). */
 @Composable
 fun HomeScreen(
     uiState: HistoryUiState,
@@ -76,6 +97,10 @@ fun HomeScreen(
     onDismissOneDay: () -> Unit,
     onOpenDailyLog: () -> Unit,
     modifier: Modifier = Modifier,
+    onEditMenstruations: () -> Unit = {},
+    onDayTapped: (LocalDate) -> Unit = {},
+    onDismissDayDetail: () -> Unit = {},
+    onOpenDailyLogFor: (LocalDate) -> Unit = {},
 ) {
     when {
         uiState.isLoading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -93,7 +118,18 @@ fun HomeScreen(
             Button(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
         }
 
-        else -> HomeContent(uiState, onMainAction, onOpenDailyLog, modifier)
+        else -> HomeContent(uiState, onMainAction, onOpenDailyLog, onEditMenstruations, onDayTapped, modifier)
+    }
+
+    uiState.selectedDay?.let { date ->
+        DayDetailSheet(
+            date = date,
+            mark = uiState.marksFor(YearMonth.from(date))[date],
+            info = uiState.selectedDayInfo,
+            log = uiState.selectedDayLog,
+            onOpenDailyLog = if (date.isAfter(uiState.today)) null else { { onOpenDailyLogFor(date) } },
+            onDismiss = onDismissDayDetail,
+        )
     }
 
     if (uiState.pendingOneDay != null) {
@@ -107,7 +143,14 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, onOpenDailyLog: () -> Unit, modifier: Modifier) {
+private fun HomeContent(
+    uiState: HistoryUiState,
+    onMainAction: () -> Unit,
+    onOpenDailyLog: () -> Unit,
+    onEditMenstruations: () -> Unit,
+    onDayTapped: (LocalDate) -> Unit,
+    modifier: Modifier,
+) {
     val status = uiState.homeStatus
     Column(
         modifier = modifier
@@ -117,9 +160,14 @@ private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, onOpe
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = formatDayHeader(uiState.today),
-            style = MaterialTheme.typography.titleMedium,
+        WeekStrip(
+            days = uiState.week,
+            today = uiState.today,
+            marksFor = uiState::marksFor,
+            onDayClick = onDayTapped,
+            ovulationDaysFor = uiState::ovulationDaysFor,
+            fertileDaysFor = uiState::fertileDaysFor,
+            loggedDays = uiState.logs.keys,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -135,16 +183,25 @@ private fun HomeContent(uiState: HistoryUiState, onMainAction: () -> Unit, onOpe
 
         status.cycleDay?.let { day ->
             Text(
-                text = status.phase?.let { stringResource(R.string.home_phase_day, stringResource(it.nameRes()).lowercase(), day) }
+                text = status.cycleLengthDays?.let { length -> stringResource(R.string.home_cycle_day_of, day, length) }
                     ?: stringResource(R.string.day_detail_cycle_day, day),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
 
-        Button(onClick = onMainAction, enabled = !uiState.isWriting, modifier = Modifier.fillMaxWidth()) {
+        // "Editar menstruación" opens the calendar in edit mode (HOME §7.1).
+        Button(
+            onClick = if (status.action == HomeAction.Edit) onEditMenstruations else onMainAction,
+            enabled = !uiState.isWriting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text(
                 stringResource(
-                    if (status.action is HomeAction.Finish) R.string.home_action_finish else R.string.home_action_start,
+                    when (status.action) {
+                        is HomeAction.Finish -> R.string.home_action_finish
+                        HomeAction.Edit -> R.string.home_action_edit
+                        HomeAction.Start -> R.string.home_action_start
+                    },
                 ),
             )
         }
@@ -232,27 +289,47 @@ private fun CycleRingCanvas(ring: CycleRing, modifier: Modifier) {
 
 @Composable
 private fun NextDatesCard(estimate: PeriodEstimate, status: HomeStatus) {
+    var showInfo by rememberSaveable { mutableStateOf(false) }
+    val start = formatShortDate(estimate.start)
+    val days = status.daysToNextPeriod
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = stringResource(R.string.estimate_title), style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = stringResource(R.string.estimate_range, formatShortDate(estimate.start), formatShortDate(estimate.end)),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            if (estimate.isPast) {
-                Text(text = stringResource(R.string.estimate_past), style = MaterialTheme.typography.bodyMedium)
-            }
-            if (estimate.isApproximate) {
-                Text(text = stringResource(R.string.estimate_approximate), style = MaterialTheme.typography.bodyMedium)
-            }
-            status.nextFertileWindow?.let { (start, end) ->
-                Text(text = stringResource(R.string.calendar_legend_fertile), style = MaterialTheme.typography.titleMedium)
+        Row(modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f).padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(
-                    text = stringResource(R.string.estimate_range, formatShortDate(start), formatShortDate(end)),
+                    text = when {
+                        estimate.isPast || days == null || days < 0 -> stringResource(R.string.home_next_period, start)
+                        days == 0 -> stringResource(R.string.home_next_period_today, start)
+                        else -> pluralStringResource(R.plurals.home_next_period_in, days, start, days)
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                 )
+                if (estimate.isPast) {
+                    Text(text = stringResource(R.string.estimate_past), style = MaterialTheme.typography.bodyMedium)
+                }
+                status.nextFertileWindow?.let { (fertileStart, fertileEnd) ->
+                    Text(
+                        text = stringResource(R.string.home_fertile_window, formatShortDate(fertileStart), formatShortDate(fertileEnd)),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+            // The approximate note moves behind an info icon (HOME §7.4).
+            if (estimate.isApproximate) {
+                IconButton(onClick = { showInfo = true }) {
+                    Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.home_estimate_info_action))
+                }
             }
         }
+    }
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            text = { Text(stringResource(R.string.estimate_approximate)) },
+            confirmButton = { TextButton(onClick = { showInfo = false }) { Text(stringResource(R.string.action_close)) } },
+        )
     }
 }
 
