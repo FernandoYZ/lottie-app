@@ -40,6 +40,8 @@ class DailyLogRepositoryTest {
         waterMl = 1250,
         weightTenthsKg = 654,
         temperatureHundredthsC = 3652,
+        moodLevel = 5,
+        energyLevel = 1,
     )
 
     @Test

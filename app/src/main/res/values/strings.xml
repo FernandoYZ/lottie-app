@@ -169,6 +169,24 @@
     <string name="daily_log_discharge">Flujo vaginal</string>
     <string name="daily_log_digestion">Digestión</string>
     <string name="daily_log_sex">Sexo y deseo sexual</string>
+    <!-- CYCLE_SUMMARY §1 -->
+    <string name="daily_log_levels">¿Cómo te sientes?</string>
+    <string name="daily_log_mood_level">Ánimo</string>
+    <string name="daily_log_energy_level">Energía</string>
+    <string-array name="mood_levels">
+        <item>Muy bajo</item>
+        <item>Bajo</item>
+        <item>Normal</item>
+        <item>Bueno</item>
+        <item>Muy bueno</item>
+    </string-array>
+    <string-array name="energy_levels">
+        <item>Muy baja</item>
+        <item>Baja</item>
+        <item>Normal</item>
+        <item>Alta</item>
+        <item>Muy alta</item>
+    </string-array>
     <!-- DAILY_LOG §8 -->
     <string name="daily_log_pregnancy_test">Prueba de embarazo</string>
     <string name="daily_log_ovulation_test">Prueba de ovulación</string>

@@ -135,4 +135,18 @@ class DailyLogEditingTest {
         assertFalse(empty.copy(weightTenthsKg = 654).isEmpty)
         assertFalse(empty.copy(temperatureHundredthsC = 3652).isEmpty)
     }
+
+    @Test
+    fun `mood and energy levels are one of five and tapping again clears them`() {
+        val good = DailyLogEditing.toggleMoodLevel(empty, 4)
+        assertEquals(4, good.moodLevel)
+        assertEquals(2, DailyLogEditing.toggleMoodLevel(good, 2).moodLevel)
+        assertNull(DailyLogEditing.toggleMoodLevel(good, 4).moodLevel)
+
+        val low = DailyLogEditing.toggleEnergyLevel(empty, 2)
+        assertEquals(2, low.energyLevel)
+        assertNull(DailyLogEditing.toggleEnergyLevel(low, 2).energyLevel)
+        assertFalse(good.isEmpty)
+        assertFalse(low.isEmpty)
+    }
 }

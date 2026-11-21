@@ -26,4 +26,7 @@ data class DailyLogEntity(
     @ColumnInfo(name = "water_ml", defaultValue = "0") val waterMl: Int = 0,
     @ColumnInfo(name = "weight_tenths_kg") val weightTenthsKg: Int? = null,
     @ColumnInfo(name = "temperature_hundredths_c") val temperatureHundredthsC: Int? = null,
+    // Added in version 4 (CYCLE_SUMMARY §1): nullable, so old rows stay valid.
+    @ColumnInfo(name = "mood_level") val moodLevel: Int? = null,
+    @ColumnInfo(name = "energy_level") val energyLevel: Int? = null,
 )

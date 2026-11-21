@@ -49,10 +49,15 @@ data class DailyLog(
     val weightTenthsKg: Int? = null,
     /** Basal temperature in hundredths of °C: 3652 is 36,52 °C. */
     val temperatureHundredthsC: Int? = null,
+    /** "¿Cómo te sientes?" (CYCLE_SUMMARY §1): 1 (muy bajo) to 5 (muy bueno), null when not logged. */
+    val moodLevel: Int? = null,
+    /** 1 (muy baja) to 5 (muy alta), null when not logged. */
+    val energyLevel: Int? = null,
 ) {
     /** Nothing marked and no note: the day is not stored (DAILY_LOG §6). */
     val isEmpty: Boolean
         get() = flow == null && !clots && moods.isEmpty() && symptoms.isEmpty() && discharge.isEmpty() &&
             digestion.isEmpty() && sex.isEmpty() && sexDrive == null && note.isBlank() &&
-            pregnancyTest == null && ovulationTest == null && waterMl == 0 && weightTenthsKg == null && temperatureHundredthsC == null
+            pregnancyTest == null && ovulationTest == null && waterMl == 0 && weightTenthsKg == null && temperatureHundredthsC == null &&
+            moodLevel == null && energyLevel == null
 }

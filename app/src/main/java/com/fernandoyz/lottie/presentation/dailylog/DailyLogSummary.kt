@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.fernandoyz.lottie.R
@@ -16,7 +17,11 @@ import com.fernandoyz.lottie.domain.model.DailyLog
 fun DailyLogSummary(log: DailyLog, modifier: Modifier = Modifier) {
     val flow = listOfNotNull(log.flow?.let { stringResource(it.labelRes()) }, if (log.clots) stringResource(R.string.flow_clots) else null)
     val sex = log.sex.map { stringResource(it.labelRes()) } + listOfNotNull(log.sexDrive?.let { stringResource(it.labelRes()) })
+    val moodLabels = stringArrayResource(R.array.mood_levels)
+    val energyLabels = stringArrayResource(R.array.energy_levels)
     val lines = listOf(
+        R.string.daily_log_mood_level to listOfNotNull(log.moodLevel?.let { moodLabels[it - 1] }),
+        R.string.daily_log_energy_level to listOfNotNull(log.energyLevel?.let { energyLabels[it - 1] }),
         R.string.daily_log_flow to flow,
         R.string.daily_log_mood to log.moods.map { stringResource(it.labelRes()) },
         R.string.daily_log_symptoms to log.symptoms.map { stringResource(it.labelRes()) },

@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -158,6 +159,12 @@ private fun Categories(uiState: DailyLogUiState, onEdit: ((DailyLog) -> DailyLog
             Text(stringResource(R.string.daily_log_write_error), color = MaterialTheme.colorScheme.error)
         }
 
+        LevelsCard(
+            moodLevel = log.moodLevel,
+            energyLevel = log.energyLevel,
+            onMood = { level -> onEdit { DailyLogEditing.toggleMoodLevel(it, level) } },
+            onEnergy = { level -> onEdit { DailyLogEditing.toggleEnergyLevel(it, level) } },
+        )
         CategoryCard(R.string.daily_log_flow) {
             MenstrualFlow.entries.forEach { flow ->
                 OptionChip(flow.labelRes(), log.flow == flow) { onEdit { DailyLogEditing.toggleFlow(it, flow) } }
@@ -221,6 +228,35 @@ private fun Categories(uiState: DailyLogUiState, onEdit: ((DailyLog) -> DailyLog
             onValid = { value -> onEdit { it.copy(temperatureHundredthsC = value) } },
         )
         NoteCard(log.note) { text -> onEdit { DailyLogEditing.withNote(it, text) } }
+    }
+}
+
+/** "¿Cómo te sientes?" (CYCLE_SUMMARY §1): one of 5 levels per row; tapping the marked one clears it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LevelsCard(moodLevel: Int?, energyLevel: Int?, onMood: (Int) -> Unit, onEnergy: (Int) -> Unit) {
+    val moodLabels = stringArrayResource(R.array.mood_levels)
+    val energyLabels = stringArrayResource(R.array.energy_levels)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.daily_log_levels),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            listOf(
+                Triple(R.string.daily_log_mood_level, moodLabels, moodLevel to onMood),
+                Triple(R.string.daily_log_energy_level, energyLabels, energyLevel to onEnergy),
+            ).forEach { (title, labels, selection) ->
+                val (selected, onSelect) = selection
+                Text(text = stringResource(title), style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DailyLogEditing.LEVELS.forEach { level ->
+                        FilterChip(selected = selected == level, onClick = { onSelect(level) }, label = { Text(labels[level - 1]) })
+                    }
+                }
+            }
+        }
     }
 }
 

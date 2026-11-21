@@ -53,6 +53,13 @@ object DailyLogEditing {
 
     fun toggleOvulationTest(log: DailyLog, test: OvulationTest) = log.copy(ovulationTest = if (log.ovulationTest == test) null else test)
 
+    // CYCLE_SUMMARY §1.
+    val LEVELS = 1..5
+
+    fun toggleMoodLevel(log: DailyLog, level: Int) = log.copy(moodLevel = if (log.moodLevel == level) null else level)
+
+    fun toggleEnergyLevel(log: DailyLog, level: Int) = log.copy(energyLevel = if (log.energyLevel == level) null else level)
+
     fun addWater(log: DailyLog) = log.copy(waterMl = log.waterMl + WATER_STEP_ML)
 
     fun removeWater(log: DailyLog) = log.copy(waterMl = (log.waterMl - WATER_STEP_ML).coerceAtLeast(0))

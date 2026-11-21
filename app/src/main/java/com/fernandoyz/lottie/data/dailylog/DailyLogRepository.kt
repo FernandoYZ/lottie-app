@@ -42,6 +42,8 @@ class DailyLogRepository(private val dao: DailyLogDao) {
         waterMl = waterMl,
         weightTenthsKg = weightTenthsKg,
         temperatureHundredthsC = temperatureHundredthsC,
+        moodLevel = moodLevel,
+        energyLevel = energyLevel,
     )
 
     private fun DailyLogEntity.toDomain() = DailyLog(
@@ -60,6 +62,8 @@ class DailyLogRepository(private val dao: DailyLogDao) {
         waterMl = waterMl,
         weightTenthsKg = weightTenthsKg,
         temperatureHundredthsC = temperatureHundredthsC,
+        moodLevel = moodLevel,
+        energyLevel = energyLevel,
     )
 
     private fun Set<Enum<*>>.join(): String = map { it.name }.sorted().joinToString(",")
