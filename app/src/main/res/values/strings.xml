@@ -166,6 +166,23 @@
     <string name="daily_log_discharge">Flujo vaginal</string>
     <string name="daily_log_digestion">Digestión</string>
     <string name="daily_log_sex">Sexo y deseo sexual</string>
+    <!-- DAILY_LOG §8 -->
+    <string name="daily_log_pregnancy_test">Prueba de embarazo</string>
+    <string name="daily_log_ovulation_test">Prueba de ovulación</string>
+    <string name="test_not_taken">No me hice pruebas</string>
+    <string name="test_positive">Positivo</string>
+    <string name="test_negative">Negativo</string>
+    <string name="test_faint_line">Línea débil</string>
+    <string name="daily_log_water">Agua</string>
+    <string name="daily_log_water_amount">%1$s L</string>
+    <string name="daily_log_water_add">Sumar 0,25 L</string>
+    <string name="daily_log_water_remove">Restar 0,25 L</string>
+    <string name="daily_log_weight">Peso</string>
+    <string name="daily_log_weight_value">%1$s kg</string>
+    <string name="daily_log_weight_error">Escribe un peso entre 20 y 300 kg.</string>
+    <string name="daily_log_temperature">Temperatura basal</string>
+    <string name="daily_log_temperature_value">%1$s °C</string>
+    <string name="daily_log_temperature_error">Escribe una temperatura entre 34 y 42 °C.</string>
     <string name="daily_log_note">Notas</string>
     <string name="daily_log_note_hint">Añade notas, otros síntomas o cómo te has sentido.</string>
     <string name="daily_log_note_counter">%1$d/%2$d</string>

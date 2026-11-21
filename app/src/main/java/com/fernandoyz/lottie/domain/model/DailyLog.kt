@@ -24,6 +24,11 @@ enum class SexActivity { None, Protected, Unprotected, Oral, Anal, Masturbation,
 
 enum class SexDrive { High, Neutral, Low }
 
+// DAILY_LOG §8 (approved 2026-11-21).
+enum class PregnancyTest { NotTaken, Positive, Negative, FaintLine }
+
+enum class OvulationTest { NotTaken, Positive, Negative }
+
 /** What the user logged for one calendar day. Independent from menstruation records (DAILY_LOG §4). */
 data class DailyLog(
     val date: LocalDate,
@@ -36,9 +41,18 @@ data class DailyLog(
     val sex: Set<SexActivity> = emptySet(),
     val sexDrive: SexDrive? = null,
     val note: String = "",
+    val pregnancyTest: PregnancyTest? = null,
+    val ovulationTest: OvulationTest? = null,
+    /** Water in ml, in steps of 250 (DAILY_LOG §8). */
+    val waterMl: Int = 0,
+    /** Weight in tenths of kg: 654 is 65,4 kg. Integers avoid rounding errors. */
+    val weightTenthsKg: Int? = null,
+    /** Basal temperature in hundredths of °C: 3652 is 36,52 °C. */
+    val temperatureHundredthsC: Int? = null,
 ) {
     /** Nothing marked and no note: the day is not stored (DAILY_LOG §6). */
     val isEmpty: Boolean
         get() = flow == null && !clots && moods.isEmpty() && symptoms.isEmpty() && discharge.isEmpty() &&
-            digestion.isEmpty() && sex.isEmpty() && sexDrive == null && note.isBlank()
+            digestion.isEmpty() && sex.isEmpty() && sexDrive == null && note.isBlank() &&
+            pregnancyTest == null && ovulationTest == null && waterMl == 0 && weightTenthsKg == null && temperatureHundredthsC == null
 }

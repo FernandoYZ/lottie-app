@@ -5,6 +5,8 @@ import com.fernandoyz.lottie.domain.model.Digestion
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
 import com.fernandoyz.lottie.domain.model.Mood
+import com.fernandoyz.lottie.domain.model.OvulationTest
+import com.fernandoyz.lottie.domain.model.PregnancyTest
 import com.fernandoyz.lottie.domain.model.SexActivity
 import com.fernandoyz.lottie.domain.model.SexDrive
 import com.fernandoyz.lottie.domain.model.Symptom
@@ -35,6 +37,11 @@ class DailyLogRepository(private val dao: DailyLogDao) {
         sex = sex.join(),
         sexDrive = sexDrive?.name,
         note = note,
+        pregnancyTest = pregnancyTest?.name,
+        ovulationTest = ovulationTest?.name,
+        waterMl = waterMl,
+        weightTenthsKg = weightTenthsKg,
+        temperatureHundredthsC = temperatureHundredthsC,
     )
 
     private fun DailyLogEntity.toDomain() = DailyLog(
@@ -48,6 +55,11 @@ class DailyLogRepository(private val dao: DailyLogDao) {
         sex = sex.toEnumSet<SexActivity>(),
         sexDrive = sexDrive.toEnumOrNull<SexDrive>(),
         note = note,
+        pregnancyTest = pregnancyTest.toEnumOrNull<PregnancyTest>(),
+        ovulationTest = ovulationTest.toEnumOrNull<OvulationTest>(),
+        waterMl = waterMl,
+        weightTenthsKg = weightTenthsKg,
+        temperatureHundredthsC = temperatureHundredthsC,
     )
 
     private fun Set<Enum<*>>.join(): String = map { it.name }.sorted().joinToString(",")

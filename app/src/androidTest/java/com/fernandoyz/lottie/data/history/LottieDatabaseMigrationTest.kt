@@ -48,4 +48,35 @@ class LottieDatabaseMigrationTest {
             database.close()
         }
     }
+
+    /** DAILY_LOG §8: version 2 → 3 adds empty columns and keeps every existing log and menstruation. */
+    @Test
+    fun migrationFrom2To3KeepsLogsAndMenstruations() = runBlocking {
+        helper.createDatabase(dbName, 2).apply {
+            execSQL("INSERT INTO menstruation_records (start_epoch_day, end_epoch_day) VALUES (100, 104)")
+            execSQL(
+                "INSERT INTO daily_logs (epoch_day, menstrual_flow, clots, moods, symptoms, discharge, digestion, sex, sex_drive, note) " +
+                    "VALUES (120, 'Light', 1, 'Calm', '', '', '', '', NULL, 'nota')",
+            )
+            close()
+        }
+
+        // Validates the migrated schema against the exported 3.json.
+        helper.runMigrationsAndValidate(dbName, 3, true).close()
+
+        val database = Room.databaseBuilder(
+            InstrumentationRegistry.getInstrumentation().targetContext,
+            LottieDatabase::class.java,
+            dbName,
+        ).build()
+        try {
+            assertEquals(listOf(100L to 104L), database.menstruationRecordDao().getAll().map { it.startEpochDay to it.endEpochDay })
+            assertEquals(
+                listOf(DailyLogEntity(120, "Light", true, "Calm", "", "", "", "", null, "nota")),
+                database.dailyLogDao().observeAll().first(),
+            )
+        } finally {
+            database.close()
+        }
+    }
 }

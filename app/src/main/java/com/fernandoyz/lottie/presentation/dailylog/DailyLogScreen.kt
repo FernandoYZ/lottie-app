@@ -2,6 +2,7 @@ package com.fernandoyz.lottie.presentation.dailylog
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,18 +36,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.DailyLogEditing
+import com.fernandoyz.lottie.domain.ParsedValue
 import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.Digestion
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
 import com.fernandoyz.lottie.domain.model.Mood
+import com.fernandoyz.lottie.domain.model.OvulationTest
+import com.fernandoyz.lottie.domain.model.PregnancyTest
 import com.fernandoyz.lottie.domain.model.SexActivity
 import com.fernandoyz.lottie.domain.model.SexDrive
 import com.fernandoyz.lottie.domain.model.Symptom
@@ -185,7 +192,102 @@ private fun Categories(uiState: DailyLogUiState, onEdit: ((DailyLog) -> DailyLog
                 OptionChip(drive.labelRes(), log.sexDrive == drive) { onEdit { DailyLogEditing.toggleSexDrive(it, drive) } }
             }
         }
+        // DAILY_LOG §8.
+        CategoryCard(R.string.daily_log_pregnancy_test) {
+            PregnancyTest.entries.forEach { test ->
+                OptionChip(test.labelRes(), log.pregnancyTest == test) { onEdit { DailyLogEditing.togglePregnancyTest(it, test) } }
+            }
+        }
+        CategoryCard(R.string.daily_log_ovulation_test) {
+            OvulationTest.entries.forEach { test ->
+                OptionChip(test.labelRes(), log.ovulationTest == test) { onEdit { DailyLogEditing.toggleOvulationTest(it, test) } }
+            }
+        }
+        WaterCard(log.waterMl, onRemove = { onEdit(DailyLogEditing::removeWater) }, onAdd = { onEdit(DailyLogEditing::addWater) })
+        NumberCard(
+            title = R.string.daily_log_weight,
+            stored = log.weightTenthsKg?.let { formatDecimal(it, 1) }.orEmpty(),
+            suffix = "kg",
+            error = R.string.daily_log_weight_error,
+            parse = DailyLogEditing::parseWeight,
+            onValid = { value -> onEdit { it.copy(weightTenthsKg = value) } },
+        )
+        NumberCard(
+            title = R.string.daily_log_temperature,
+            stored = log.temperatureHundredthsC?.let { formatDecimal(it, 2) }.orEmpty(),
+            suffix = "°C",
+            error = R.string.daily_log_temperature_error,
+            parse = DailyLogEditing::parseTemperature,
+            onValid = { value -> onEdit { it.copy(temperatureHundredthsC = value) } },
+        )
         NoteCard(log.note) { text -> onEdit { DailyLogEditing.withNote(it, text) } }
+    }
+}
+
+@Composable
+private fun WaterCard(waterMl: Int, onRemove: () -> Unit, onAdd: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.daily_log_water),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = stringResource(R.string.daily_log_water_amount, formatDecimal(waterMl, 3)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            // material-icons-core has no "remove" icon, so both buttons use text signs with a spoken label.
+            val removeLabel = stringResource(R.string.daily_log_water_remove)
+            val addLabel = stringResource(R.string.daily_log_water_add)
+            FilledTonalIconButton(onClick = onRemove, enabled = waterMl > 0, modifier = Modifier.semantics { contentDescription = removeLabel }) {
+                Text("−", style = MaterialTheme.typography.titleLarge)
+            }
+            FilledTonalIconButton(onClick = onAdd, modifier = Modifier.semantics { contentDescription = addLabel }) {
+                Text("+", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+/**
+ * A typed number (DAILY_LOG §8): valid values are saved as typed, invalid ones only show [error].
+ * Local text so typing is not interrupted while each change is saved.
+ */
+@Composable
+private fun NumberCard(
+    @StringRes title: Int,
+    stored: String,
+    suffix: String,
+    @StringRes error: Int,
+    parse: (String) -> ParsedValue,
+    onValid: (Int?) -> Unit,
+) {
+    var text by remember { mutableStateOf(stored) }
+    val invalid = parse(text) == ParsedValue.Invalid
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            OutlinedTextField(
+                value = text,
+                onValueChange = { typed ->
+                    text = typed
+                    (parse(typed) as? ParsedValue.Valid)?.let { onValid(it.value) }
+                },
+                suffix = { Text(suffix) },
+                isError = invalid,
+                supportingText = if (invalid) { { Text(stringResource(error)) } } else null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

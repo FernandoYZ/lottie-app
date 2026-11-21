@@ -3,6 +3,8 @@ package com.fernandoyz.lottie.domain
 import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
+import com.fernandoyz.lottie.domain.model.OvulationTest
+import com.fernandoyz.lottie.domain.model.PregnancyTest
 import com.fernandoyz.lottie.domain.model.Mood
 import com.fernandoyz.lottie.domain.model.SexActivity
 import com.fernandoyz.lottie.domain.model.SexDrive
@@ -86,5 +88,51 @@ class DailyLogEditingTest {
         assertTrue(DailyLogEditing.withNote(empty, "   ").isEmpty)
         assertFalse(DailyLogEditing.toggleClots(empty).isEmpty)
         assertFalse(DailyLogEditing.withNote(empty, "Nota").isEmpty)
+    }
+
+    @Test
+    fun `tests are one option and tapping it again clears it`() {
+        val positive = DailyLogEditing.togglePregnancyTest(empty, PregnancyTest.Positive)
+        assertEquals(PregnancyTest.FaintLine, DailyLogEditing.togglePregnancyTest(positive, PregnancyTest.FaintLine).pregnancyTest)
+        assertNull(DailyLogEditing.togglePregnancyTest(positive, PregnancyTest.Positive).pregnancyTest)
+
+        val negative = DailyLogEditing.toggleOvulationTest(empty, OvulationTest.Negative)
+        assertEquals(OvulationTest.Negative, negative.ovulationTest)
+        assertNull(DailyLogEditing.toggleOvulationTest(negative, OvulationTest.Negative).ovulationTest)
+        assertFalse(positive.isEmpty)
+    }
+
+    @Test
+    fun `water goes up and down by 250 ml and never below zero`() {
+        val twice = DailyLogEditing.addWater(DailyLogEditing.addWater(empty))
+        assertEquals(500, twice.waterMl)
+        assertEquals(250, DailyLogEditing.removeWater(twice).waterMl)
+        assertEquals(0, DailyLogEditing.removeWater(empty).waterMl)
+        assertTrue(DailyLogEditing.removeWater(DailyLogEditing.addWater(empty)).isEmpty)
+    }
+
+    @Test
+    fun `weight accepts kg with one decimal between 20 and 300`() {
+        assertEquals(ParsedValue.Valid(654), DailyLogEditing.parseWeight("65,4"))
+        assertEquals(ParsedValue.Valid(650), DailyLogEditing.parseWeight("65.0"))
+        assertEquals(ParsedValue.Valid(200), DailyLogEditing.parseWeight("20"))
+        assertEquals(ParsedValue.Valid(3000), DailyLogEditing.parseWeight("300"))
+        assertEquals(ParsedValue.Valid(null), DailyLogEditing.parseWeight("  "))
+        listOf("19,9", "300,1", "65,45", "abc", "-70").forEach { assertEquals(it, ParsedValue.Invalid, DailyLogEditing.parseWeight(it)) }
+    }
+
+    @Test
+    fun `temperature accepts degrees with two decimals between 34 and 42`() {
+        assertEquals(ParsedValue.Valid(3652), DailyLogEditing.parseTemperature("36,52"))
+        assertEquals(ParsedValue.Valid(3400), DailyLogEditing.parseTemperature("34"))
+        assertEquals(ParsedValue.Valid(4200), DailyLogEditing.parseTemperature("42.00"))
+        assertEquals(ParsedValue.Valid(null), DailyLogEditing.parseTemperature(""))
+        listOf("33,99", "42,01", "36,525", "36,5,2").forEach { assertEquals(it, ParsedValue.Invalid, DailyLogEditing.parseTemperature(it)) }
+    }
+
+    @Test
+    fun `weight and temperature alone keep the day stored`() {
+        assertFalse(empty.copy(weightTenthsKg = 654).isEmpty)
+        assertFalse(empty.copy(temperatureHundredthsC = 3652).isEmpty)
     }
 }

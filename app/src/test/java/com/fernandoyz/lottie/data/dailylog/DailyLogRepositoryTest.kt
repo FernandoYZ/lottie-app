@@ -5,6 +5,8 @@ import com.fernandoyz.lottie.domain.model.Digestion
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
 import com.fernandoyz.lottie.domain.model.Mood
+import com.fernandoyz.lottie.domain.model.OvulationTest
+import com.fernandoyz.lottie.domain.model.PregnancyTest
 import com.fernandoyz.lottie.domain.model.SexActivity
 import com.fernandoyz.lottie.domain.model.SexDrive
 import com.fernandoyz.lottie.domain.model.Symptom
@@ -33,6 +35,11 @@ class DailyLogRepositoryTest {
         sex = setOf(SexActivity.Protected, SexActivity.Orgasm),
         sexDrive = SexDrive.Neutral,
         note = "Nota de prueba",
+        pregnancyTest = PregnancyTest.FaintLine,
+        ovulationTest = OvulationTest.Positive,
+        waterMl = 1250,
+        weightTenthsKg = 654,
+        temperatureHundredthsC = 3652,
     )
 
     @Test

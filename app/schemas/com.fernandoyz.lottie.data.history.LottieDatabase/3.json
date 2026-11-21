@@ -1,0 +1,150 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "9554f62e671d0d09a0bca6a81abf5c64",
+    "entities": [
+      {
+        "tableName": "menstruation_records",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `start_epoch_day` INTEGER NOT NULL, `end_epoch_day` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startEpochDay",
+            "columnName": "start_epoch_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endEpochDay",
+            "columnName": "end_epoch_day",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_menstruation_records_start_epoch_day",
+            "unique": true,
+            "columnNames": [
+              "start_epoch_day"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_menstruation_records_start_epoch_day` ON `${TABLE_NAME}` (`start_epoch_day`)"
+          }
+        ]
+      },
+      {
+        "tableName": "daily_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`epoch_day` INTEGER NOT NULL, `menstrual_flow` TEXT, `clots` INTEGER NOT NULL, `moods` TEXT NOT NULL, `symptoms` TEXT NOT NULL, `discharge` TEXT NOT NULL, `digestion` TEXT NOT NULL, `sex` TEXT NOT NULL, `sex_drive` TEXT, `note` TEXT NOT NULL, `pregnancy_test` TEXT, `ovulation_test` TEXT, `water_ml` INTEGER NOT NULL DEFAULT 0, `weight_tenths_kg` INTEGER, `temperature_hundredths_c` INTEGER, PRIMARY KEY(`epoch_day`))",
+        "fields": [
+          {
+            "fieldPath": "epochDay",
+            "columnName": "epoch_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "menstrualFlow",
+            "columnName": "menstrual_flow",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "clots",
+            "columnName": "clots",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "moods",
+            "columnName": "moods",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "symptoms",
+            "columnName": "symptoms",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "discharge",
+            "columnName": "discharge",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "digestion",
+            "columnName": "digestion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sex",
+            "columnName": "sex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sexDrive",
+            "columnName": "sex_drive",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pregnancyTest",
+            "columnName": "pregnancy_test",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ovulationTest",
+            "columnName": "ovulation_test",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "waterMl",
+            "columnName": "water_ml",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "weightTenthsKg",
+            "columnName": "weight_tenths_kg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "temperatureHundredthsC",
+            "columnName": "temperature_hundredths_c",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "epoch_day"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9554f62e671d0d09a0bca6a81abf5c64')"
+    ]
+  }
+}

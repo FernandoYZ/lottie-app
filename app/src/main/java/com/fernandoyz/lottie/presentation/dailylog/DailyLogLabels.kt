@@ -6,9 +6,12 @@ import com.fernandoyz.lottie.domain.model.Digestion
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
 import com.fernandoyz.lottie.domain.model.Mood
+import com.fernandoyz.lottie.domain.model.OvulationTest
+import com.fernandoyz.lottie.domain.model.PregnancyTest
 import com.fernandoyz.lottie.domain.model.SexActivity
 import com.fernandoyz.lottie.domain.model.SexDrive
 import com.fernandoyz.lottie.domain.model.Symptom
+import java.math.BigDecimal
 
 // Visible names of the DAILY_LOG §4 options, shared by the log screen and the day detail.
 
@@ -94,3 +97,22 @@ fun SexDrive.labelRes(): Int = when (this) {
     SexDrive.Neutral -> R.string.sex_drive_neutral
     SexDrive.Low -> R.string.sex_drive_low
 }
+
+@StringRes
+fun PregnancyTest.labelRes(): Int = when (this) {
+    PregnancyTest.NotTaken -> R.string.test_not_taken
+    PregnancyTest.Positive -> R.string.test_positive
+    PregnancyTest.Negative -> R.string.test_negative
+    PregnancyTest.FaintLine -> R.string.test_faint_line
+}
+
+@StringRes
+fun OvulationTest.labelRes(): Int = when (this) {
+    OvulationTest.NotTaken -> R.string.test_not_taken
+    OvulationTest.Positive -> R.string.test_positive
+    OvulationTest.Negative -> R.string.test_negative
+}
+
+/** Stored integer with [decimals] implied decimals, written the Spanish way: 1250, 3 → "1,25". */
+fun formatDecimal(value: Int, decimals: Int): String =
+    BigDecimal(value).movePointLeft(decimals).stripTrailingZeros().toPlainString().replace('.', ',')

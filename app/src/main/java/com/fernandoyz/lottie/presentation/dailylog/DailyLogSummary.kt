@@ -23,6 +23,13 @@ fun DailyLogSummary(log: DailyLog, modifier: Modifier = Modifier) {
         R.string.daily_log_discharge to log.discharge.map { stringResource(it.labelRes()) },
         R.string.daily_log_digestion to log.digestion.map { stringResource(it.labelRes()) },
         R.string.daily_log_sex to sex,
+        R.string.daily_log_pregnancy_test to listOfNotNull(log.pregnancyTest?.let { stringResource(it.labelRes()) }),
+        R.string.daily_log_ovulation_test to listOfNotNull(log.ovulationTest?.let { stringResource(it.labelRes()) }),
+        R.string.daily_log_water to listOf(log.waterMl).filter { it > 0 }.map { stringResource(R.string.daily_log_water_amount, formatDecimal(it, 3)) },
+        R.string.daily_log_weight to listOfNotNull(log.weightTenthsKg?.let { stringResource(R.string.daily_log_weight_value, formatDecimal(it, 1)) }),
+        R.string.daily_log_temperature to listOfNotNull(
+            log.temperatureHundredthsC?.let { stringResource(R.string.daily_log_temperature_value, formatDecimal(it, 2)) },
+        ),
         R.string.daily_log_note to listOf(log.note.trim()).filter { it.isNotEmpty() },
     ).filter { it.second.isNotEmpty() }
 
