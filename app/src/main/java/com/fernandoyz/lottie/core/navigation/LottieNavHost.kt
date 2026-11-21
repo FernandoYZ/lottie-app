@@ -29,6 +29,8 @@ import com.fernandoyz.lottie.R
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
+import com.fernandoyz.lottie.data.reminders.ReminderRepository
+import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.presentation.dailylog.DailyLogRoute
 import com.fernandoyz.lottie.presentation.dailylog.DailyLogViewModel
@@ -75,6 +77,8 @@ fun LottieNavHost(
     setupRepository: SetupRepository,
     historyRepository: HistoryRepository,
     dailyLogRepository: DailyLogRepository,
+    reminderRepository: ReminderRepository,
+    onRemindersChanged: (ReminderSettings) -> Unit,
     clock: Clock,
     modifier: Modifier = Modifier,
     openDailyLogToday: Boolean = false,
@@ -142,7 +146,11 @@ fun LottieNavHost(
                 HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)))
             }
             composable(LottieDestinations.SETTINGS) {
-                SettingsRoute(viewModel = viewModel(factory = SettingsViewModel.factory(setupRepository, historyRepository)))
+                SettingsRoute(
+                    viewModel = viewModel(
+                        factory = SettingsViewModel.factory(setupRepository, historyRepository, reminderRepository, onRemindersChanged),
+                    ),
+                )
             }
         }
     }

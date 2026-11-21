@@ -14,6 +14,7 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
+import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
@@ -49,9 +50,9 @@ class OnboardingFlowTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val dataStoreScope = CoroutineScope(Dispatchers.IO + Job())
     private val dataStoreFile = File(context.cacheDir, "onboarding_flow_test.preferences_pb").apply { delete() }
-    private val repository = SetupRepository(
-        PreferenceDataStoreFactory.create(scope = dataStoreScope, produceFile = { dataStoreFile }),
-    )
+    private val dataStore = PreferenceDataStoreFactory.create(scope = dataStoreScope, produceFile = { dataStoreFile })
+    private val repository = SetupRepository(dataStore)
+    private val reminderRepository = ReminderRepository(dataStore)
 
     private val database = Room.inMemoryDatabaseBuilder(context, LottieDatabase::class.java).build()
     private val historyRepository = HistoryRepository(database.menstruationRecordDao(), repository)
@@ -71,7 +72,7 @@ class OnboardingFlowTest {
     }
 
     private fun setApp() {
-        composeRule.setContent { LottieTheme { LottieApp(repository, historyRepository, dailyLogRepository, clock) } }
+        composeRule.setContent { LottieTheme { LottieApp(repository, historyRepository, dailyLogRepository, reminderRepository, onRemindersChanged = {}, clock = clock) } }
     }
 
     @Test

@@ -22,6 +22,8 @@ import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.core.navigation.LottieDestinations
 import com.fernandoyz.lottie.core.navigation.LottieNavHost
 import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
+import com.fernandoyz.lottie.data.reminders.ReminderRepository
+import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import java.time.Clock
@@ -32,6 +34,8 @@ fun LottieApp(
     setupRepository: SetupRepository,
     historyRepository: HistoryRepository,
     dailyLogRepository: DailyLogRepository,
+    reminderRepository: ReminderRepository,
+    onRemindersChanged: (ReminderSettings) -> Unit,
     clock: Clock,
     openDailyLogToday: Boolean = false,
 ) {
@@ -48,6 +52,8 @@ fun LottieApp(
                 setupRepository = setupRepository,
                 historyRepository = historyRepository,
                 dailyLogRepository = dailyLogRepository,
+                reminderRepository = reminderRepository,
+                onRemindersChanged = onRemindersChanged,
                 clock = clock,
                 modifier = contentModifier,
             )
@@ -56,6 +62,8 @@ fun LottieApp(
                 setupRepository = setupRepository,
                 historyRepository = historyRepository,
                 dailyLogRepository = dailyLogRepository,
+                reminderRepository = reminderRepository,
+                onRemindersChanged = onRemindersChanged,
                 clock = clock,
                 openDailyLogToday = openDailyLogToday,
                 modifier = contentModifier,

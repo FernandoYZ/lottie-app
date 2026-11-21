@@ -14,6 +14,7 @@ import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.CycleDayInfo
 import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.PeriodEstimate
+import com.fernandoyz.lottie.domain.Reminder
 import com.fernandoyz.lottie.presentation.calendar.DayDetailContent
 import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
@@ -196,6 +197,27 @@ class Stage3ScreensTest {
 
         composeRule.onNodeWithText(text(R.string.setup_cycle_error_out_of_range), substring = true).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.settings_save)).assertIsNotEnabled()
+    }
+
+    @Test
+    fun settingsShowsRemindersOffAndSendsTheToggle() {
+        var toggled: Pair<Reminder, Boolean>? = null
+        composeRule.setContent {
+            LottieTheme {
+                SettingsScreen(
+                    uiState = SettingsUiState(isLoading = false, notificationPermissionDenied = true),
+                    onCycleLengthChanged = {},
+                    onSave = {},
+                    onReminderToggled = { reminder, enabled -> toggled = reminder to enabled },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(text(R.string.reminders_title)).assertExists()
+        composeRule.onNodeWithText("09:00", substring = true).assertExists()
+        composeRule.onNodeWithText(text(R.string.reminders_permission_denied)).assertExists()
+        composeRule.onNodeWithText(text(R.string.reminders_daily_log)).performClick()
+        assertEquals(Reminder.DailyLog to true, toggled)
     }
 
     @Test

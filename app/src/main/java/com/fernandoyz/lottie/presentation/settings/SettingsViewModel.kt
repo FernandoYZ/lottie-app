@@ -7,6 +7,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.data.reminders.ReminderRepository
+import com.fernandoyz.lottie.domain.Reminder
+import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.domain.CycleLengthValidation
 import com.fernandoyz.lottie.domain.CycleStatistics
 import com.fernandoyz.lottie.domain.SetupValidation
@@ -17,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalTime
 
 data class SettingsUiState(
     val isLoading: Boolean = true,
@@ -32,6 +36,10 @@ data class SettingsUiState(
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val saveFailed: Boolean = false,
+    /** Reminder switches and time (REMINDERS §2). */
+    val reminders: ReminderSettings = ReminderSettings(),
+    val reminderSaveFailed: Boolean = false,
+    val notificationPermissionDenied: Boolean = false,
 ) {
     /** Null when the field is empty: the cycle length is learned automatically. */
     private val validation: CycleLengthValidation? =
@@ -52,12 +60,24 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val repository: SetupRepository,
     private val historyRepository: HistoryRepository,
+    private val reminderRepository: ReminderRepository,
+    /** Called with the saved settings after every reminder change, to reschedule the daily check. */
+    private val onRemindersChanged: (ReminderSettings) -> Unit,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            try {
+                reminderRepository.settings.collect { settings -> _uiState.update { it.copy(reminders = settings) } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, loadFailed = true) }
+            }
+        }
         viewModelScope.launch {
             try {
                 val manual = repository.manualCycleLengthDays.first()
@@ -107,10 +127,42 @@ class SettingsViewModel(
         }
     }
 
+    fun onReminderToggled(reminder: Reminder, enabled: Boolean) {
+        _uiState.update { it.copy(notificationPermissionDenied = false) }
+        saveReminders { reminderRepository.setEnabled(reminder, enabled) }
+    }
+
+    fun onReminderTimeChanged(time: LocalTime) = saveReminders { reminderRepository.setTime(time) }
+
+    /** The switch stays off and the reason is shown (REMINDERS §2). */
+    fun onNotificationPermissionDenied() {
+        _uiState.update { it.copy(notificationPermissionDenied = true) }
+    }
+
+    private fun saveReminders(write: suspend () -> Unit) {
+        _uiState.update { it.copy(reminderSaveFailed = false) }
+        viewModelScope.launch {
+            try {
+                write()
+                onRemindersChanged(reminderRepository.settings.first())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Do not log the exception: it may reference personal data.
+                _uiState.update { it.copy(reminderSaveFailed = true) }
+            }
+        }
+    }
+
     companion object {
-        fun factory(repository: SetupRepository, historyRepository: HistoryRepository): ViewModelProvider.Factory =
+        fun factory(
+            repository: SetupRepository,
+            historyRepository: HistoryRepository,
+            reminderRepository: ReminderRepository,
+            onRemindersChanged: (ReminderSettings) -> Unit,
+        ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { SettingsViewModel(repository, historyRepository) }
+                initializer { SettingsViewModel(repository, historyRepository, reminderRepository, onRemindersChanged) }
             }
     }
 }

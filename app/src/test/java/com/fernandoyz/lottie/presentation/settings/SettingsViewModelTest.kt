@@ -6,6 +6,10 @@ import com.fernandoyz.lottie.data.InMemoryDataStore
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
+import com.fernandoyz.lottie.data.reminders.ReminderRepository
+import com.fernandoyz.lottie.domain.Reminder
+import com.fernandoyz.lottie.domain.ReminderSettings
+import java.time.LocalTime
 import com.fernandoyz.lottie.domain.CycleLengthValidation
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import kotlinx.coroutines.flow.first
@@ -29,6 +33,12 @@ class SettingsViewModelTest {
     private val repository = SetupRepository(InMemoryDataStore())
     private val history = HistoryRepository(FakeMenstruationRecordDao(), repository)
 
+    private val reminders = ReminderRepository(InMemoryDataStore())
+    private val scheduled = mutableListOf<ReminderSettings>()
+
+    private fun viewModel(reminderRepository: ReminderRepository = reminders) =
+        SettingsViewModel(repository, history, reminderRepository, scheduled::add)
+
     private suspend fun completeSetup() = repository.save(InitialSetup(setupDate, setupDate.plusDays(3)))
 
     @Test
@@ -37,7 +47,7 @@ class SettingsViewModelTest {
         history.add(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 5), today)
         history.add(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4), today) // 30 days later
 
-        val state = SettingsViewModel(repository, history).uiState.value
+        val state = viewModel().uiState.value
 
         assertFalse(state.isLoading)
         assertEquals("", state.cycleLengthInput)
@@ -49,13 +59,13 @@ class SettingsViewModelTest {
     fun `learned length is the default 28 with fewer than two starts`() = runTest {
         completeSetup()
 
-        assertEquals(28, SettingsViewModel(repository, history).uiState.value.learnedCycleLengthDays)
+        assertEquals(28, viewModel().uiState.value.learnedCycleLengthDays)
     }
 
     @Test
     fun `manual value is saved`() = runTest {
         completeSetup()
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
 
         vm.onCycleLengthChanged("31")
         vm.onSave()
@@ -67,7 +77,7 @@ class SettingsViewModelTest {
     @Test
     fun `after saving, editing again allows another save`() = runTest {
         completeSetup()
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
         vm.onCycleLengthChanged("31")
         vm.onSave()
 
@@ -81,7 +91,7 @@ class SettingsViewModelTest {
     fun `learned length follows new records and keeps the typed value`() = runTest {
         completeSetup()
         history.add(LocalDate.of(2026, 5, 2), LocalDate.of(2026, 5, 5), today)
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
         vm.onCycleLengthChanged("33")
 
         history.add(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 4), today) // 30 days later
@@ -94,7 +104,7 @@ class SettingsViewModelTest {
     fun `clearing the field goes back to the learned value`() = runTest {
         completeSetup()
         repository.setManualCycleLength(31)
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
         assertEquals("31", vm.uiState.value.cycleLengthInput)
 
         vm.onCycleLengthChanged("")
@@ -107,7 +117,7 @@ class SettingsViewModelTest {
     @Test
     fun `value outside technical limit is rejected`() = runTest {
         completeSetup()
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
 
         vm.onCycleLengthChanged("100")
 
@@ -118,7 +128,7 @@ class SettingsViewModelTest {
     @Test
     fun `value outside reference range shows warning and can be saved`() = runTest {
         completeSetup()
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
 
         vm.onCycleLengthChanged("50")
 
@@ -129,7 +139,7 @@ class SettingsViewModelTest {
     @Test
     fun `save failure is reported and not shown as saved`() = runTest {
         val failing = SetupRepository(FailingDataStore(failReads = false, failWrites = true))
-        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing))
+        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing), reminders, scheduled::add)
 
         vm.onCycleLengthChanged("30")
         vm.onSave()
@@ -142,11 +152,71 @@ class SettingsViewModelTest {
     fun `cycle length not longer than the longest recorded bleeding is rejected`() = runTest {
         completeSetup()
         history.add(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 5), today) // 5 days
-        val vm = SettingsViewModel(repository, history)
+        val vm = viewModel()
 
         vm.onCycleLengthChanged("5")
 
         assertEquals(CycleLengthValidation.NotLongerThanBleeding(5), vm.uiState.value.cycleLengthError)
         assertFalse(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun `reminders start off at 09_00`() = runTest {
+        completeSetup()
+
+        assertEquals(ReminderSettings(emptySet(), LocalTime.of(9, 0)), viewModel().uiState.value.reminders)
+    }
+
+    @Test
+    fun `turning a reminder on saves it and schedules the check`() = runTest {
+        completeSetup()
+        val vm = viewModel()
+
+        vm.onReminderToggled(Reminder.DailyLog, true)
+
+        val expected = ReminderSettings(setOf(Reminder.DailyLog), LocalTime.of(9, 0))
+        assertEquals(expected, reminders.settings.first())
+        assertEquals(expected, vm.uiState.value.reminders)
+        assertEquals(listOf(expected), scheduled)
+    }
+
+    @Test
+    fun `changing the time saves it and reschedules the check`() = runTest {
+        completeSetup()
+        reminders.setEnabled(Reminder.PeriodSoon, true)
+        val vm = viewModel()
+
+        vm.onReminderTimeChanged(LocalTime.of(20, 15))
+
+        val expected = ReminderSettings(setOf(Reminder.PeriodSoon), LocalTime.of(20, 15))
+        assertEquals(expected, reminders.settings.first())
+        assertEquals(listOf(expected), scheduled)
+    }
+
+    @Test
+    fun `a denied permission keeps the reminder off and explains it`() = runTest {
+        completeSetup()
+        val vm = viewModel()
+
+        vm.onNotificationPermissionDenied()
+
+        assertTrue(vm.uiState.value.notificationPermissionDenied)
+        assertEquals(emptySet<Reminder>(), reminders.settings.first().enabled)
+        assertTrue(scheduled.isEmpty())
+
+        vm.onReminderToggled(Reminder.DailyLog, true)
+        assertFalse(vm.uiState.value.notificationPermissionDenied)
+    }
+
+    @Test
+    fun `a reminder save failure is reported`() = runTest {
+        completeSetup()
+        val vm = viewModel(ReminderRepository(FailingDataStore(failReads = false, failWrites = true)))
+
+        vm.onReminderToggled(Reminder.DailyLog, true)
+
+        assertTrue(vm.uiState.value.reminderSaveFailed)
+        assertEquals(emptySet<Reminder>(), vm.uiState.value.reminders.enabled)
+        assertTrue(scheduled.isEmpty())
     }
 }
