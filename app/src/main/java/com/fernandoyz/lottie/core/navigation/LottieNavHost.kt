@@ -14,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,8 +77,13 @@ fun LottieNavHost(
     dailyLogRepository: DailyLogRepository,
     clock: Clock,
     modifier: Modifier = Modifier,
+    openDailyLogToday: Boolean = false,
 ) {
     val navController = rememberNavController()
+    // The daily log reminder opens today's log over Home (REMINDERS §1).
+    LaunchedEffect(Unit) {
+        if (openDailyLogToday) navController.navigate(LottieDestinations.dailyLog(LocalDate.now(clock)))
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 

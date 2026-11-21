@@ -220,4 +220,17 @@
     <string name="history_error_overlap">Las fechas se solapan con otro registro.</string>
     <string name="history_error_missing_end">Indica la fecha de fin: hay registros posteriores a este.</string>
     <string name="history_error_previous_open">Primero marca el fin de la menstruación en curso.</string>
+    <!-- Reminders (REMINDERS.md) -->
+    <string name="reminders_channel_name">Recordatorios</string>
+    <string name="reminder_period_soon">Tu menstruación empezaría en 2 días.</string>
+    <string name="reminder_fertile_window">Hoy empieza tu ventana fértil estimada.</string>
+    <string name="reminder_daily_log">¿Cómo te sentiste hoy? Registra tu día.</string>
+    <string name="reminder_public_text">Tienes un recordatorio</string>
+    <string name="reminders_title">Recordatorios</string>
+    <string name="reminders_period_soon">Menstruación próxima</string>
+    <string name="reminders_fertile_window">Ventana fértil</string>
+    <string name="reminders_daily_log">Registro diario</string>
+    <string name="reminders_time">Hora</string>
+    <string name="reminders_time_dialog_title">Hora de los recordatorios</string>
+    <string name="reminders_permission_denied">Lottie no tiene permiso para enviar notificaciones. Puedes activarlo en los ajustes del teléfono.</string>
 </resources>

@@ -33,6 +33,7 @@ fun LottieApp(
     historyRepository: HistoryRepository,
     dailyLogRepository: DailyLogRepository,
     clock: Clock,
+    openDailyLogToday: Boolean = false,
 ) {
     val startViewModel: StartViewModel = viewModel(factory = StartViewModel.factory(setupRepository))
     val startState by startViewModel.startState.collectAsStateWithLifecycle()
@@ -56,6 +57,7 @@ fun LottieApp(
                 historyRepository = historyRepository,
                 dailyLogRepository = dailyLogRepository,
                 clock = clock,
+                openDailyLogToday = openDailyLogToday,
                 modifier = contentModifier,
             )
         }
