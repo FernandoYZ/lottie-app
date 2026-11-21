@@ -101,11 +101,19 @@ fun CycleSummaryScreen(
             return
         }
         val summary = CycleSummaryStats.summarize(cycle, range, uiState.records, uiState.estimate, uiState.logs, uiState.today)
+        // "Registraste N de M días" is for the whole cycle, next to its dates (CYCLE_SUMMARY §2).
+        val whole = CycleSummaryStats.summarize(cycle, SummaryRange.WholeCycle, uiState.records, uiState.estimate, uiState.logs, uiState.today)
 
         Header(
             cycle = cycle,
             onPrevious = cycles.getOrNull(index + 1)?.let { older -> { onCycleChanged(older.start) } },
             onNext = cycles.getOrNull(index - 1)?.let { newer -> { onCycleChanged(newer.start) } },
+        )
+        Text(
+            text = pluralStringResource(R.plurals.summary_logged_days, whole.days.size, whole.loggedDays, whole.days.size),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         )
         PrimaryScrollableTabRow(selectedTabIndex = range.ordinal, edgePadding = 16.dp) {
             SummaryRange.entries.forEach { option ->
@@ -119,10 +127,6 @@ fun CycleSummaryScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = pluralStringResource(R.plurals.summary_logged_days, summary.days.size, summary.loggedDays, summary.days.size),
-                style = MaterialTheme.typography.bodyLarge,
-            )
             if (summary.loggedDays == 0) {
                 Text(stringResource(R.string.summary_empty), style = MaterialTheme.typography.bodyMedium)
             } else {
