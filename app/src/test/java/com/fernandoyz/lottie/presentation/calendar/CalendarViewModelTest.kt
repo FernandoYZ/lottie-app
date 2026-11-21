@@ -2,13 +2,17 @@ package com.fernandoyz.lottie.presentation.calendar
 
 import com.fernandoyz.lottie.MainDispatcherRule
 import com.fernandoyz.lottie.data.InMemoryDataStore
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
+import com.fernandoyz.lottie.data.dailylog.FakeDailyLogDao
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
+import com.fernandoyz.lottie.domain.model.Mood
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -36,7 +40,21 @@ class CalendarViewModelTest {
     private val setupRepository = SetupRepository(InMemoryDataStore())
     private val historyRepository = HistoryRepository(dao, setupRepository)
 
-    private fun viewModel() = CalendarViewModel(historyRepository, setupRepository, clock)
+    private val dailyLogRepository = DailyLogRepository(FakeDailyLogDao())
+
+    private fun viewModel() = CalendarViewModel(historyRepository, setupRepository, dailyLogRepository, clock)
+
+    @Test
+    fun `logged days and the selected day log are known`() = runTest {
+        val day = LocalDate.of(2026, 6, 10)
+        dailyLogRepository.save(DailyLog(day, moods = setOf(Mood.Calm)))
+        val vm = viewModel()
+
+        vm.onDayLongPressed(day)
+
+        assertEquals(setOf(day), vm.uiState.value.loggedDays)
+        assertEquals(setOf(Mood.Calm), vm.uiState.value.selectedDayLog?.moods)
+    }
     private suspend fun stored(): List<MenstruationRecord> = historyRepository.records.first()
 
     @Test

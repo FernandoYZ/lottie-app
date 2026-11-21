@@ -127,7 +127,10 @@ fun LottieNavHost(
                 )
             }
             composable(LottieDestinations.CALENDAR) {
-                CalendarRoute(viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, clock)))
+                CalendarRoute(
+                    viewModel = viewModel(factory = CalendarViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
+                    onOpenDailyLog = { date -> navController.navigate(LottieDestinations.dailyLog(date)) },
+                )
             }
             composable(LottieDestinations.HISTORY) {
                 HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)))

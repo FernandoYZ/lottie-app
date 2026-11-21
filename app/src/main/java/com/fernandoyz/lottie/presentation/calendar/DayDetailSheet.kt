@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,20 +20,39 @@ import com.fernandoyz.lottie.R
 import com.fernandoyz.lottie.domain.CycleDayInfo
 import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.DayMark
+import com.fernandoyz.lottie.domain.model.DailyLog
+import com.fernandoyz.lottie.presentation.dailylog.DailyLogSummary
 import com.fernandoyz.lottie.presentation.common.formatLongDate
 import java.time.LocalDate
 
-/** Detail of a calendar day, opened with a long press (day-detail S1-S4). Read-only for now. */
+/**
+ * Detail of a calendar day, opened with a long press (day-detail S1-S4), with its daily log and
+ * "Registrar este día" (DAILY_LOG §2, §5). [onOpenDailyLog] is null for future days.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DayDetailSheet(date: LocalDate, mark: DayMark?, info: CycleDayInfo?, onDismiss: () -> Unit) {
+fun DayDetailSheet(
+    date: LocalDate,
+    mark: DayMark?,
+    info: CycleDayInfo?,
+    log: DailyLog?,
+    onOpenDailyLog: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        DayDetailContent(date = date, mark = mark, info = info)
+        DayDetailContent(date = date, mark = mark, info = info, log = log, onOpenDailyLog = onOpenDailyLog)
     }
 }
 
 @Composable
-fun DayDetailContent(date: LocalDate, mark: DayMark?, info: CycleDayInfo?, modifier: Modifier = Modifier) {
+fun DayDetailContent(
+    date: LocalDate,
+    mark: DayMark?,
+    info: CycleDayInfo?,
+    modifier: Modifier = Modifier,
+    log: DailyLog? = null,
+    onOpenDailyLog: (() -> Unit)? = null,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -48,26 +68,38 @@ fun DayDetailContent(date: LocalDate, mark: DayMark?, info: CycleDayInfo?, modif
 
         if (info == null) {
             Text(text = stringResource(R.string.day_detail_no_cycle), style = MaterialTheme.typography.bodyLarge)
-            return@Column
+        } else {
+            CycleInfo(info)
         }
-        Text(text = stringResource(R.string.day_detail_cycle_day, info.cycleDay), style = MaterialTheme.typography.bodyLarge)
-        Text(
-            text = info.phase?.let { stringResource(R.string.day_detail_phase, stringResource(it.nameRes())) }
-                ?: stringResource(R.string.day_detail_phase_unavailable),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        if (info.inFertileWindow) {
-            Text(text = stringResource(R.string.day_detail_fertile), style = MaterialTheme.typography.bodyLarge)
+
+        log?.let { DailyLogSummary(it, Modifier.padding(top = 8.dp)) }
+        onOpenDailyLog?.let { open ->
+            OutlinedButton(onClick = open, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.day_detail_log_action))
+            }
         }
-        if (info.basedOnEstimate && info.phase != null && info.phase != CyclePhase.Menstrual) {
-            Text(text = stringResource(R.string.day_detail_based_on_estimate), style = MaterialTheme.typography.bodyMedium)
-        }
-        Text(
-            text = stringResource(R.string.day_detail_disclaimer),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
+}
+
+@Composable
+private fun CycleInfo(info: CycleDayInfo) {
+    Text(text = stringResource(R.string.day_detail_cycle_day, info.cycleDay), style = MaterialTheme.typography.bodyLarge)
+    Text(
+        text = info.phase?.let { stringResource(R.string.day_detail_phase, stringResource(it.nameRes())) }
+            ?: stringResource(R.string.day_detail_phase_unavailable),
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    if (info.inFertileWindow) {
+        Text(text = stringResource(R.string.day_detail_fertile), style = MaterialTheme.typography.bodyLarge)
+    }
+    if (info.basedOnEstimate && info.phase != null && info.phase != CyclePhase.Menstrual) {
+        Text(text = stringResource(R.string.day_detail_based_on_estimate), style = MaterialTheme.typography.bodyMedium)
+    }
+    Text(
+        text = stringResource(R.string.day_detail_disclaimer),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @StringRes

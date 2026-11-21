@@ -37,9 +37,13 @@ import java.time.YearMonth
 
 /** Stateful container: connects [CalendarViewModel] with the stateless [CalendarScreen]. */
 @Composable
-fun CalendarRoute(viewModel: CalendarViewModel, modifier: Modifier = Modifier) {
+fun CalendarRoute(viewModel: CalendarViewModel, onOpenDailyLog: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     CalendarScreen(
+        onOpenDailyLog = { date ->
+            viewModel.onDismissDayDetail()
+            onOpenDailyLog(date)
+        },
         uiState = uiState,
         onMonthChanged = viewModel::onMonthChanged,
         onDayTapped = viewModel::onDayTapped,
@@ -61,6 +65,7 @@ fun CalendarScreen(
     onDayLongPressed: (LocalDate) -> Unit,
     onDismissDayDetail: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenDailyLog: (LocalDate) -> Unit = {},
 ) {
     if (uiState.isLoading) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -95,6 +100,7 @@ fun CalendarScreen(
             onDayLongClick = onDayLongPressed,
             ovulationDaysFor = uiState::ovulationDaysFor,
             fertileDaysFor = uiState::fertileDaysFor,
+            loggedDays = uiState.loggedDays,
         )
 
         val message = uiState.rejection?.let { stringResource(it.messageRes()) }
@@ -125,6 +131,8 @@ fun CalendarScreen(
             date = date,
             mark = uiState.marksFor(YearMonth.from(date))[date],
             info = uiState.selectedDayInfo,
+            log = uiState.selectedDayLog,
+            onOpenDailyLog = if (date.isAfter(uiState.today)) null else { { onOpenDailyLog(date) } },
             onDismiss = onDismissDayDetail,
         )
     }

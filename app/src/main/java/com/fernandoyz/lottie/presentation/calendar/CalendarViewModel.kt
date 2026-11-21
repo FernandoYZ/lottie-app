@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
@@ -17,6 +18,7 @@ import com.fernandoyz.lottie.domain.DayMark
 import com.fernandoyz.lottie.domain.HistoryValidationError
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.domain.PeriodEstimation
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,8 +45,14 @@ data class CalendarUiState(
     val isWriting: Boolean = false,
     /** Day whose detail panel is open after a long press (day-detail S1). */
     val selectedDay: LocalDate? = null,
+    /** Daily logs by date (DAILY_LOG §5). */
+    val logs: Map<LocalDate, DailyLog> = emptyMap(),
 ) {
     val selectedDayInfo: CycleDayInfo? = selectedDay?.let { CyclePhases.dayInfo(it, records, estimate, today) }
+
+    val selectedDayLog: DailyLog? = selectedDay?.let { logs[it] }
+
+    val loggedDays: Set<LocalDate> = logs.keys
 
     fun ovulationDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.ovulationDays(month, records, estimate, today)
 
@@ -63,6 +71,7 @@ data class CalendarUiState(
 class CalendarViewModel(
     private val historyRepository: HistoryRepository,
     setupRepository: SetupRepository,
+    dailyLogRepository: DailyLogRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -72,13 +81,18 @@ class CalendarViewModel(
     init {
         viewModelScope.launch {
             try {
-                combine(historyRepository.records, setupRepository.manualCycleLengthDays) { records, manual -> records to manual }
-                    .collect { (records, manual) ->
+                combine(
+                    historyRepository.records,
+                    setupRepository.manualCycleLengthDays,
+                    dailyLogRepository.logs,
+                ) { records, manual, logs -> Triple(records, manual, logs) }
+                    .collect { (records, manual, logs) ->
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 records = records,
                                 estimate = PeriodEstimation.estimate(records, manual, it.today),
+                                logs = logs,
                             )
                         }
                     }
@@ -145,9 +159,10 @@ class CalendarViewModel(
         fun factory(
             historyRepository: HistoryRepository,
             setupRepository: SetupRepository,
+            dailyLogRepository: DailyLogRepository,
             clock: Clock,
         ): ViewModelProvider.Factory = viewModelFactory {
-            initializer { CalendarViewModel(historyRepository, setupRepository, clock) }
+            initializer { CalendarViewModel(historyRepository, setupRepository, dailyLogRepository, clock) }
         }
     }
 }

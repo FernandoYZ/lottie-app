@@ -15,7 +15,9 @@ import com.fernandoyz.lottie.domain.CycleDayInfo
 import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.PeriodEstimate
 import com.fernandoyz.lottie.presentation.calendar.DayDetailContent
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
+import com.fernandoyz.lottie.domain.model.Mood
 import com.fernandoyz.lottie.presentation.calendar.CalendarScreen
 import com.fernandoyz.lottie.presentation.calendar.CalendarUiState
 import com.fernandoyz.lottie.presentation.common.formatLongDate
@@ -156,6 +158,28 @@ class Stage3ScreensTest {
         composeRule.onNodeWithText(context.getString(R.string.day_detail_phase, text(R.string.phase_ovulation))).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.day_detail_based_on_estimate)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.day_detail_disclaimer)).assertIsDisplayed()
+    }
+
+    @Test
+    fun dayDetailShowsTheDailyLogAndOpensIt() {
+        var opened = false
+        composeRule.setContent {
+            LottieTheme {
+                DayDetailContent(
+                    date = LocalDate.of(2026, 6, 10),
+                    mark = null,
+                    info = null,
+                    log = DailyLog(LocalDate.of(2026, 6, 10), moods = setOf(Mood.Calm)),
+                    onOpenDailyLog = { opened = true },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(
+            context.getString(R.string.day_detail_log_item, text(R.string.daily_log_mood), text(R.string.mood_calm)),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.day_detail_log_action)).performClick()
+        assertEquals(true, opened)
     }
 
     @Test

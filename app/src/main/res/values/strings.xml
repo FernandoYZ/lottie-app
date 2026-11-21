@@ -80,6 +80,10 @@
     <string name="calendar_day_fertile">%1$s, ventana fértil estimada</string>
     <string name="calendar_day_ovulation">%1$s, ovulación estimada</string>
     <string name="calendar_day_detail_action">Ver detalle del día</string>
+    <string name="calendar_legend_logged">Día con registro diario</string>
+    <string name="calendar_day_logged">%1$s, con registro diario</string>
+    <string name="day_detail_log_action">Registrar este día</string>
+    <string name="day_detail_log_item">%1$s: %2$s</string>
 
     <!-- Day detail and cycle phases (odd/tasks/day-detail.md) -->
     <string name="phase_menstrual">Menstrual</string>
