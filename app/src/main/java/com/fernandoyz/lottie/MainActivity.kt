@@ -70,6 +70,7 @@ class MainActivity : FragmentActivity() {
                             clock = clock,
                             openDailyLogToday = openDailyLogToday,
                             privacyRepository = app.privacyRepository,
+                            dataEraser = app.dataEraser,
                             authenticator = authenticator,
                         )
                     }

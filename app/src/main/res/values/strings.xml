@@ -282,6 +282,10 @@
     <string name="privacy_title">Privacidad</string>
     <string name="privacy_app_lock">Bloquear Lottie</string>
     <string name="privacy_app_lock_unavailable">Configura un bloqueo de pantalla en el teléfono para usar esta opción.</string>
+    <string name="privacy_erase">Borrar todos los datos</string>
+    <string name="privacy_erase_body">Se borrarán tus menstruaciones, registros diarios, recordatorios y ajustes. No se puede deshacer.</string>
+    <string name="privacy_erase_confirm">Borrar</string>
+    <string name="privacy_erase_error">No se pudieron borrar los datos. Inténtalo de nuevo.</string>
     <string name="lock_title">Lottie está bloqueada</string>
     <string name="lock_unlock">Desbloquear</string>
     <string name="lock_prompt_title">Desbloquear Lottie</string>

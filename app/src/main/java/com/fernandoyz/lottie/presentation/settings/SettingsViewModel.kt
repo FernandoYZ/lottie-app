@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.DataEraser
 import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
@@ -46,6 +47,12 @@ data class SettingsUiState(
     /** The phone has no screen lock, so the switch cannot be turned on. */
     val appLockUnavailable: Boolean = false,
     val appLockSaveFailed: Boolean = false,
+    /** "Borrar todos los datos" (SECURITY §2). */
+    val confirmErase: Boolean = false,
+    val isErasing: Boolean = false,
+    val eraseFailed: Boolean = false,
+    /** Everything was erased: the app restarts at the welcome screen. */
+    val erased: Boolean = false,
 ) {
     /** Null when the field is empty: the cycle length is learned automatically. */
     private val validation: CycleLengthValidation? =
@@ -68,6 +75,7 @@ class SettingsViewModel(
     private val historyRepository: HistoryRepository,
     private val reminderRepository: ReminderRepository,
     private val privacyRepository: PrivacyRepository,
+    private val dataEraser: DataEraser,
     /** Called with the saved settings after every reminder change, to reschedule the daily check. */
     private val onRemindersChanged: (ReminderSettings) -> Unit,
 ) : ViewModel() {
@@ -171,6 +179,26 @@ class SettingsViewModel(
 
     fun onAppLockUnavailable() = _uiState.update { it.copy(appLockUnavailable = true) }
 
+    fun onEraseRequested() = _uiState.update { it.copy(confirmErase = true, eraseFailed = false) }
+
+    fun onEraseDismissed() = _uiState.update { it.copy(confirmErase = false) }
+
+    fun onEraseConfirmed() {
+        if (_uiState.value.isErasing) return
+        _uiState.update { it.copy(confirmErase = false, isErasing = true, eraseFailed = false) }
+        viewModelScope.launch {
+            try {
+                dataEraser.eraseAll()
+                _uiState.update { it.copy(isErasing = false, erased = true) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Do not log the exception: it may reference personal data.
+                _uiState.update { it.copy(isErasing = false, eraseFailed = true) }
+            }
+        }
+    }
+
     private fun saveReminders(write: suspend () -> Unit) {
         _uiState.update { it.copy(reminderSaveFailed = false) }
         viewModelScope.launch {
@@ -192,10 +220,11 @@ class SettingsViewModel(
             historyRepository: HistoryRepository,
             reminderRepository: ReminderRepository,
             privacyRepository: PrivacyRepository,
+            dataEraser: DataEraser,
             onRemindersChanged: (ReminderSettings) -> Unit,
         ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { SettingsViewModel(repository, historyRepository, reminderRepository, privacyRepository, onRemindersChanged) }
+                initializer { SettingsViewModel(repository, historyRepository, reminderRepository, privacyRepository, dataEraser, onRemindersChanged) }
             }
     }
 }

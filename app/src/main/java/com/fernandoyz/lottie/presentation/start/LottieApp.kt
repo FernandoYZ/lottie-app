@@ -25,6 +25,7 @@ import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.DataEraser
 import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.security.DeviceAuthenticator
 import com.fernandoyz.lottie.data.repository.SetupRepository
@@ -41,6 +42,7 @@ fun LottieApp(
     clock: Clock,
     openDailyLogToday: Boolean = false,
     privacyRepository: PrivacyRepository,
+    dataEraser: DataEraser,
     authenticator: DeviceAuthenticator? = null,
 ) {
     val startViewModel: StartViewModel = viewModel(factory = StartViewModel.factory(setupRepository))
@@ -59,6 +61,9 @@ fun LottieApp(
                 reminderRepository = reminderRepository,
                 onRemindersChanged = onRemindersChanged,
                 privacyRepository = privacyRepository,
+                dataEraser = dataEraser,
+                // After erasing everything the app starts again from the welcome screen (SECURITY §2).
+                onDataErased = startViewModel::retry,
                 authenticator = authenticator,
                 clock = clock,
                 modifier = contentModifier,
@@ -71,6 +76,9 @@ fun LottieApp(
                 reminderRepository = reminderRepository,
                 onRemindersChanged = onRemindersChanged,
                 privacyRepository = privacyRepository,
+                dataEraser = dataEraser,
+                // After erasing everything the app starts again from the welcome screen (SECURITY §2).
+                onDataErased = startViewModel::retry,
                 authenticator = authenticator,
                 clock = clock,
                 openDailyLogToday = openDailyLogToday,

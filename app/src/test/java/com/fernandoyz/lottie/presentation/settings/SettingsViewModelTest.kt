@@ -3,6 +3,7 @@ package com.fernandoyz.lottie.presentation.settings
 import com.fernandoyz.lottie.MainDispatcherRule
 import com.fernandoyz.lottie.data.FailingDataStore
 import com.fernandoyz.lottie.data.InMemoryDataStore
+import com.fernandoyz.lottie.data.privacy.DataEraser
 import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
@@ -36,10 +37,13 @@ class SettingsViewModelTest {
 
     private val reminders = ReminderRepository(InMemoryDataStore())
     private val privacy = PrivacyRepository(InMemoryDataStore())
+    private var erased = 0
+    private var failErase = false
+    private val eraser = DataEraser(clearDatabase = { if (failErase) error("disk") else erased++ }, dataStore = InMemoryDataStore(), cancelReminders = {})
     private val scheduled = mutableListOf<ReminderSettings>()
 
     private fun viewModel(reminderRepository: ReminderRepository = reminders) =
-        SettingsViewModel(repository, history, reminderRepository, privacy, scheduled::add)
+        SettingsViewModel(repository, history, reminderRepository, privacy, eraser, scheduled::add)
 
     private suspend fun completeSetup() = repository.save(InitialSetup(setupDate, setupDate.plusDays(3)))
 
@@ -141,7 +145,7 @@ class SettingsViewModelTest {
     @Test
     fun `save failure is reported and not shown as saved`() = runTest {
         val failing = SetupRepository(FailingDataStore(failReads = false, failWrites = true))
-        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing), reminders, privacy, scheduled::add)
+        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing), reminders, privacy, eraser, scheduled::add)
 
         vm.onCycleLengthChanged("30")
         vm.onSave()
@@ -234,5 +238,33 @@ class SettingsViewModelTest {
         assertEquals(true, vm.uiState.value.appLockEnabled)
         assertEquals(false, vm.uiState.value.appLockUnavailable)
         assertEquals(true, privacy.appLockEnabled.first())
+    }
+
+    @Test
+    fun `erasing all data asks first and reports when it is done`() = runTest {
+        val vm = viewModel()
+
+        vm.onEraseRequested()
+        assertEquals(true, vm.uiState.value.confirmErase)
+        vm.onEraseDismissed()
+        assertEquals(false, vm.uiState.value.confirmErase)
+        assertEquals(0, erased)
+
+        vm.onEraseRequested()
+        vm.onEraseConfirmed()
+        assertEquals(1, erased)
+        assertEquals(true, vm.uiState.value.erased)
+    }
+
+    @Test
+    fun `a failed erase is reported`() = runTest {
+        failErase = true
+        val vm = viewModel()
+
+        vm.onEraseRequested()
+        vm.onEraseConfirmed()
+
+        assertEquals(true, vm.uiState.value.eraseFailed)
+        assertEquals(false, vm.uiState.value.erased)
     }
 }

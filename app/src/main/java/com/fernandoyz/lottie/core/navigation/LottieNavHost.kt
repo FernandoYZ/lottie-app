@@ -35,6 +35,7 @@ import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.DataEraser
 import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.security.DeviceAuthenticator
 import com.fernandoyz.lottie.presentation.dailylog.DailyLogRoute
@@ -89,6 +90,8 @@ fun LottieNavHost(
     reminderRepository: ReminderRepository,
     onRemindersChanged: (ReminderSettings) -> Unit,
     privacyRepository: PrivacyRepository,
+    dataEraser: DataEraser,
+    onDataErased: () -> Unit,
     authenticator: DeviceAuthenticator?,
     clock: Clock,
     modifier: Modifier = Modifier,
@@ -176,12 +179,14 @@ fun LottieNavHost(
             composable(LottieDestinations.SETTINGS) {
                 SettingsRoute(
                     authenticator = authenticator,
+                    onDataErased = onDataErased,
                     viewModel = viewModel(
                         factory = SettingsViewModel.factory(
                             setupRepository,
                             historyRepository,
                             reminderRepository,
                             privacyRepository,
+                            dataEraser,
                             onRemindersChanged,
                         ),
                     ),

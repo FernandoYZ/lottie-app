@@ -25,12 +25,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -59,8 +61,14 @@ import java.time.format.DateTimeFormatter
 
 /** Stateful container: connects [SettingsViewModel] with the stateless [SettingsScreen]. */
 @Composable
-fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier, authenticator: DeviceAuthenticator? = null) {
+fun SettingsRoute(
+    viewModel: SettingsViewModel,
+    modifier: Modifier = Modifier,
+    authenticator: DeviceAuthenticator? = null,
+    onDataErased: () -> Unit = {},
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(uiState.erased) { if (uiState.erased) onDataErased() }
     val context = LocalContext.current
 
     // Reminder waiting for the answer to the notification permission (REMINDERS §2).
@@ -94,6 +102,9 @@ fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier, a
                 else -> authenticator.authenticate { confirmed -> if (confirmed) viewModel.onAppLockChanged(true) }
             }
         },
+        onEraseRequested = viewModel::onEraseRequested,
+        onEraseConfirmed = viewModel::onEraseConfirmed,
+        onEraseDismissed = viewModel::onEraseDismissed,
         modifier = modifier,
     )
 }
@@ -107,6 +118,9 @@ fun SettingsScreen(
     onReminderToggled: (Reminder, Boolean) -> Unit = { _, _ -> },
     onReminderTimeChanged: (LocalTime) -> Unit = {},
     onAppLockToggled: (Boolean) -> Unit = {},
+    onEraseRequested: () -> Unit = {},
+    onEraseConfirmed: () -> Unit = {},
+    onEraseDismissed: () -> Unit = {},
 ) {
     if (uiState.isLoading) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -166,13 +180,26 @@ fun SettingsScreen(
         HorizontalDivider()
         RemindersSection(uiState, onReminderToggled, onReminderTimeChanged)
         HorizontalDivider()
-        PrivacySection(uiState, onAppLockToggled)
+        PrivacySection(uiState, onAppLockToggled, onEraseRequested)
+    }
+
+    if (uiState.confirmErase) {
+        AlertDialog(
+            onDismissRequest = onEraseDismissed,
+            text = { Text(stringResource(R.string.privacy_erase_body)) },
+            confirmButton = {
+                TextButton(onClick = onEraseConfirmed) {
+                    Text(stringResource(R.string.privacy_erase_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = onEraseDismissed) { Text(stringResource(R.string.action_cancel)) } },
+        )
     }
 }
 
-/** "Privacidad" (SECURITY §1). */
+/** "Privacidad" (SECURITY §1-§2). */
 @Composable
-private fun PrivacySection(uiState: SettingsUiState, onAppLockToggled: (Boolean) -> Unit) {
+private fun PrivacySection(uiState: SettingsUiState, onAppLockToggled: (Boolean) -> Unit, onEraseRequested: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.privacy_title),
@@ -191,6 +218,11 @@ private fun PrivacySection(uiState: SettingsUiState, onAppLockToggled: (Boolean)
         }
         if (uiState.appLockUnavailable) ErrorText(stringResource(R.string.privacy_app_lock_unavailable))
         if (uiState.appLockSaveFailed) ErrorText(stringResource(R.string.settings_save_error))
+        // SECURITY §2.
+        OutlinedButton(onClick = onEraseRequested, enabled = !uiState.isErasing, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.privacy_erase), color = MaterialTheme.colorScheme.error)
+        }
+        if (uiState.eraseFailed) ErrorText(stringResource(R.string.privacy_erase_error))
     }
 }
 
