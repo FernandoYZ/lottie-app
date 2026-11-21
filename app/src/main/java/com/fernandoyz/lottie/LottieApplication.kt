@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.core.app.NotificationManagerCompat
 import androidx.room.Room
 import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
@@ -54,7 +55,11 @@ class LottieApplication : Application() {
         DataEraser(
             clearDatabase = { withContext(Dispatchers.IO) { database.clearAllTables() } },
             dataStore = settingsDataStore,
-            cancelReminders = { reminderScheduler.schedule(ReminderSettings(), ReminderScheduler.Mode.Replace) },
+            cancelReminders = {
+                reminderScheduler.schedule(ReminderSettings(), ReminderScheduler.Mode.Replace)
+                // A reminder already on screen would still show after the erase.
+                NotificationManagerCompat.from(this).cancelAll()
+            },
         )
     }
 
