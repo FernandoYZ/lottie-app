@@ -41,13 +41,28 @@
     <string name="history_load_error">No se pudo cargar el historial.</string>
     <string name="history_section">Historial</string>
     <string name="history_empty">Todavía no hay registros.</string>
-    <string name="history_range">%1$s – %2$s</string>
-    <string name="history_ongoing">En curso</string>
-    <string name="history_in_progress_until">En curso, prevista hasta el %1$s</string>
-    <plurals name="history_duration_days">
-        <item quantity="one">%d día</item>
-        <item quantity="other">%d días</item>
+    <plurals name="stats_average_cycle">
+        <item quantity="one">Duración media del ciclo: %d día</item>
+        <item quantity="other">Duración media del ciclo: %d días</item>
     </plurals>
+    <string name="stats_average_cycle_missing">Duración media del ciclo: necesitas al menos 2 menstruaciones</string>
+    <plurals name="stats_average_period">
+        <item quantity="one">Duración media de la menstruación: %d día</item>
+        <item quantity="other">Duración media de la menstruación: %d días</item>
+    </plurals>
+    <string name="stats_average_period_missing">Duración media de la menstruación: aún sin datos</string>
+    <string name="stats_current_range">Ciclo actual: %1$s – %2$s</string>
+    <string name="stats_current_since">Ciclo actual: desde %1$s</string>
+    <string name="stats_current_day" tools:ignore="PluralsCandidate">Día %1$d</string>
+    <plurals name="stats_past_cycle">
+        <item quantity="one">%1$s – %2$s · %3$d día</item>
+        <item quantity="other">%1$s – %2$s · %3$d días</item>
+    </plurals>
+    <plurals name="stats_menstruation">
+        <item quantity="one">Menstruación: %d día</item>
+        <item quantity="other">Menstruación: %d días</item>
+    </plurals>
+    <string name="stats_menstruation_ongoing">Menstruación en curso</string>
 
     <!-- Estimate (STAGE_3 §2-3, STAGE_4 §3) -->
     <string name="estimate_title">Próxima menstruación estimada</string>

@@ -222,4 +222,16 @@ class HistoryViewModelTest {
         assertEquals(today, vm.uiState.value.records.single().endDate)
         assertNull(vm.uiState.value.pendingOneDay)
     }
+
+    @Test
+    fun `history averages come from the history only`() = runTest {
+        repository.add(LocalDate.of(2026, 5, 4), LocalDate.of(2026, 5, 8), today)
+        repository.add(LocalDate.of(2026, 6, 3), LocalDate.of(2026, 6, 6), today)
+        setupRepository.setManualCycleLength(35)
+        val vm = HistoryViewModel(repository, setupRepository, dailyLogRepository, clock)
+
+        assertEquals(30, vm.uiState.value.averageCycleLengthDays)
+        assertEquals(5, vm.uiState.value.averagePeriodLengthDays) // 5 and 4 days, rounded half up
+        assertEquals(2, vm.uiState.value.cycles.size)
+    }
 }

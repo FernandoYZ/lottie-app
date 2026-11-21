@@ -38,13 +38,19 @@ class HistoryScreensTest {
     }
 
     @Test
-    fun historyShowsDurationAndDaysStillExpected() {
+    fun historyShowsAveragesAndOneRowPerCycle() {
         setHistory(HistoryUiState(today = today, isLoading = false, records = listOf(current, closed)))
 
-        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.history_duration_days, 4, 4))
-            .assertIsDisplayed()
-        composeRule.onNodeWithText(context.getString(R.string.history_in_progress_until, formatShortDate(current.endDate!!)))
-            .assertIsDisplayed()
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.stats_average_cycle, 31, 31)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.stats_average_period, 4, 4)).assertIsDisplayed()
+        composeRule.onNodeWithText(
+            context.resources.getQuantityString(
+                R.plurals.stats_past_cycle, 31, formatShortDate(closed.startDate), formatShortDate(LocalDate.of(2026, 6, 13)), 31,
+            ),
+        ).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.stats_current_since, formatShortDate(current.startDate))).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.stats_menstruation_ongoing)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.stats_menstruation, 4, 4)).assertIsDisplayed()
     }
 
     @Test

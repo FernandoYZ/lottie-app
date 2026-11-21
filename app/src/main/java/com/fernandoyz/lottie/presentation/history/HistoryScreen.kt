@@ -1,14 +1,21 @@
 package com.fernandoyz.lottie.presentation.history
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -19,11 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.domain.CycleSummary
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
@@ -36,7 +45,7 @@ fun HistoryRoute(viewModel: HistoryViewModel, modifier: Modifier = Modifier) {
     HistoryScreen(uiState = uiState, onRetry = viewModel::retry, modifier = modifier)
 }
 
-/** History tab: read-only list of menstruations, newest first (bottom-bar S1). */
+/** History tab: cycle averages and one row per cycle, newest first (STATISTICS §2-§3). */
 @Composable
 fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     when {
@@ -66,8 +75,13 @@ fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifi
             if (uiState.records.isEmpty()) {
                 item { Text(stringResource(R.string.history_empty)) }
             } else {
-                items(uiState.records, key = { it.id }) { record ->
-                    RecordRow(record = record, today = uiState.today)
+                item { Summary(uiState.averageCycleLengthDays, uiState.averagePeriodLengthDays) }
+                val longest = maxOf(
+                    uiState.cycles.maxOf { it.lengthDays ?: it.dayOfCycle ?: 1 },
+                    uiState.averageCycleLengthDays ?: 1,
+                )
+                items(uiState.cycles, key = { it.start.toEpochDay() }) { cycle ->
+                    CycleRow(cycle = cycle, longestDays = longest, meanDays = uiState.averageCycleLengthDays)
                     HorizontalDivider()
                 }
             }
@@ -76,31 +90,89 @@ fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifi
 }
 
 @Composable
-private fun RecordRow(record: MenstruationRecord, today: LocalDate) {
-    val end = record.endDate
+private fun Summary(averageCycle: Int?, averagePeriod: Int?) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = averageCycle?.let { pluralStringResource(R.plurals.stats_average_cycle, it, it) }
+                ?: stringResource(R.string.stats_average_cycle_missing),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = averagePeriod?.let { pluralStringResource(R.plurals.stats_average_period, it, it) }
+                ?: stringResource(R.string.stats_average_period_missing),
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+/** One cycle with its dates, menstruation and a bar to compare lengths (STATISTICS §3). */
+@Composable
+private fun CycleRow(cycle: CycleSummary, longestDays: Int, meanDays: Int?) {
+    val start = formatShortDate(cycle.start)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = if (end == null) {
-                formatShortDate(record.startDate)
-            } else {
-                stringResource(R.string.history_range, formatShortDate(record.startDate), formatShortDate(end))
+            text = when {
+                !cycle.isCurrent -> pluralStringResource(
+                    R.plurals.stats_past_cycle, cycle.lengthDays!!, start, formatShortDate(cycle.end!!), cycle.lengthDays,
+                )
+                cycle.end != null -> stringResource(R.string.stats_current_range, start, formatShortDate(cycle.end))
+                else -> stringResource(R.string.stats_current_since, start)
             },
             style = MaterialTheme.typography.bodyLarge,
         )
+        cycle.dayOfCycle?.let {
+            Text(text = stringResource(R.string.stats_current_day, it), style = MaterialTheme.typography.bodyMedium)
+        }
         Text(
-            text = when {
-                end == null -> stringResource(R.string.history_ongoing)
-                end.isAfter(today) -> stringResource(R.string.history_in_progress_until, formatShortDate(end))
-                else -> pluralStringResource(R.plurals.history_duration_days, record.durationDays!!, record.durationDays)
-            },
+            text = cycle.menstruationDays?.let { pluralStringResource(R.plurals.stats_menstruation, it, it) }
+                ?: stringResource(R.string.stats_menstruation_ongoing),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        CycleBar(
+            cycleDays = cycle.lengthDays ?: cycle.dayOfCycle ?: 1,
+            // While the menstruation is in progress, only the days already lived are coloured.
+            menstruationDays = cycle.menstruationDays ?: cycle.dayOfCycle ?: 0,
+            longestDays = longestDays,
+            meanDays = meanDays,
+        )
+    }
+}
+
+/** Decorative: the texts above already say the same for screen readers. */
+@Composable
+private fun CycleBar(cycleDays: Int, menstruationDays: Int, longestDays: Int, meanDays: Int?) {
+    val colors = MaterialTheme.colorScheme
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(16.dp).clearAndSetSemantics {}) {
+        val dayWidth = maxWidth / longestDays
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .width(dayWidth * cycleDays)
+                .height(10.dp)
+                .background(colors.surfaceVariant, CircleShape),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .width(dayWidth * menstruationDays.coerceAtMost(cycleDays))
+                .height(10.dp)
+                .background(colors.primary, CircleShape),
+        )
+        if (meanDays != null) {
+            Box(
+                modifier = Modifier
+                    .offset(x = dayWidth * meanDays - 1.dp)
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(colors.onSurface),
+            )
+        }
     }
 }
 

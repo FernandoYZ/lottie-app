@@ -11,6 +11,8 @@ import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
 import com.fernandoyz.lottie.domain.CalendarMarks
 import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CycleHistory
+import com.fernandoyz.lottie.domain.CycleSummary
 import com.fernandoyz.lottie.domain.CyclePhases
 import com.fernandoyz.lottie.domain.CycleStatistics
 import com.fernandoyz.lottie.domain.DayAction
@@ -57,6 +59,13 @@ data class HistoryUiState(
 ) {
     /** Ring, headline, phase and main action of Home (HOME §2-§5). */
     val homeStatus: HomeStatus = HomeStatus.of(records, estimate, today)
+
+    /** History tab (STATISTICS §2-§3): history-only means, so a manual cycle length does not change them. */
+    val averageCycleLengthDays: Int? = CycleStatistics.averageCycleLengthDays(records)
+
+    val averagePeriodLengthDays: Int? = CycleStatistics.averagePeriodLengthDays(records, today)
+
+    val cycles: List<CycleSummary> = CycleHistory.cycles(records, estimate, today)
 
     /** Current week, Monday to Sunday (HOME §7.2). */
     val week: List<LocalDate> = today.with(DayOfWeek.MONDAY).let { monday -> (0L..6L).map(monday::plusDays) }
