@@ -8,7 +8,7 @@ import com.fernandoyz.lottie.domain.ReminderRules
 import com.fernandoyz.lottie.domain.ReminderSettings
 import java.time.Clock
 import java.time.Duration
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,8 +35,9 @@ class ReminderScheduler(private val context: Context, private val clock: Clock) 
             workManager.cancelUniqueWork(WORK_NAME)
             return
         }
-        val now = LocalDateTime.now(clock)
-        val delay = Duration.between(now, ReminderRules.nextRun(now, settings.time))
+        // Zoned, so a daylight-saving change does not shift the run by an hour.
+        val now = ZonedDateTime.now(clock)
+        val delay = Duration.between(now, ReminderRules.nextRun(now.toLocalDateTime(), settings.time).atZone(now.zone))
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
             .build()

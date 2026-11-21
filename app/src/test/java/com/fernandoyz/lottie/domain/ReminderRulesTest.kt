@@ -71,6 +71,14 @@ class ReminderRulesTest {
     }
 
     @Test
+    fun `a time a few minutes ahead still runs today`() {
+        assertEquals(
+            LocalDateTime.of(2026, 6, 10, 9, 0),
+            ReminderRules.nextRun(LocalDateTime.of(2026, 6, 10, 8, 50), LocalTime.of(9, 0)),
+        )
+    }
+
+    @Test
     fun `next run is tomorrow when the time has passed or is about to`() {
         val nine = LocalTime.of(9, 0)
         assertEquals(LocalDateTime.of(2026, 6, 11, 9, 0), ReminderRules.nextRun(LocalDateTime.of(2026, 6, 10, 9, 5), nine))

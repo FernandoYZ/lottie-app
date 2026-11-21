@@ -26,8 +26,8 @@ object ReminderRules {
 
     const val PERIOD_DAYS_BEFORE = 2L
 
-    /** A run this close before the chosen time counts as that run, so it does not repeat the same day. */
-    private const val EARLY_MARGIN_MINUTES = 30L
+    /** A run woken this close before the chosen time counts as that run; WorkManager does not run early, so 1 minute is enough. */
+    private const val EARLY_MARGIN_MINUTES = 1L
 
     fun due(
         enabled: Set<Reminder>,
