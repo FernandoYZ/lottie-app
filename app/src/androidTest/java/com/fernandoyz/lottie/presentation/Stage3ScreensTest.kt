@@ -50,6 +50,9 @@ class Stage3ScreensTest {
                 HomeScreen(
                     uiState = HistoryUiState(today = today, isLoading = false, records = listOf(record), estimate = estimate),
                     onRetry = {},
+                    onMainAction = {},
+                    onConfirmOneDay = {},
+                    onDismissOneDay = {},
                 )
             }
         }
@@ -63,7 +66,9 @@ class Stage3ScreensTest {
         composeRule.onNodeWithText(text(R.string.estimate_disclaimer)).assertIsDisplayed()
         composeRule.onNodeWithText(text(R.string.estimate_past)).assertDoesNotExist()
         composeRule.onNodeWithText(text(R.string.estimate_approximate)).assertDoesNotExist()
-        composeRule.onNodeWithText(context.getString(R.string.home_today_phase, 15, text(R.string.phase_ovulation).lowercase())).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.home_phase_day, text(R.string.phase_ovulation).lowercase(), 15)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.home_headline_ovulation_today)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.home_action_start)).assertIsDisplayed()
     }
 
     @Test

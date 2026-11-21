@@ -7,6 +7,7 @@ import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CyclePhase
+import com.fernandoyz.lottie.domain.HomeHeadline
 import com.fernandoyz.lottie.domain.model.InitialSetup
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -104,10 +105,62 @@ class HistoryViewModelTest {
     fun `today's cycle day and phase are shown`() = runTest {
         completeSetup() // 01/06 - 04/06, next start estimated 29/06, ovulation 15/06 = today
 
-        val info = HistoryViewModel(repository, setupRepository, clock).uiState.value.todayInfo
+        val status = HistoryViewModel(repository, setupRepository, clock).uiState.value.homeStatus
 
-        assertEquals(15, info?.cycleDay)
-        assertEquals(CyclePhase.Ovulation, info?.phase)
+        assertEquals(15, status.cycleDay)
+        assertEquals(CyclePhase.Ovulation, status.phase)
+        assertEquals(HomeHeadline.OvulationToday, status.headline)
+    }
+
+    @Test
+    fun `start button registers today filled with the period length`() = runTest {
+        completeSetup() // 4 day menstruation, so the fill is 4 days
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.onMainActionTapped()
+
+        val latest = vm.uiState.value.records.first()
+        assertEquals(today, latest.startDate)
+        assertEquals(LocalDate.of(2026, 6, 18), latest.endDate)
+    }
+
+    @Test
+    fun `finish button ends the ongoing menstruation today`() = runTest {
+        repository.add(LocalDate.of(2026, 6, 13), LocalDate.of(2026, 6, 18), today)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.onMainActionTapped()
+
+        assertEquals(today, vm.uiState.value.records.single().endDate)
+        assertNull(vm.uiState.value.pendingOneDay)
+    }
+
+    @Test
+    fun `finishing on the start day asks before saving a one day menstruation`() = runTest {
+        repository.add(today, LocalDate.of(2026, 6, 20), today)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.onMainActionTapped()
+
+        assertEquals(LocalDate.of(2026, 6, 20), vm.uiState.value.records.single().endDate)
+        assertEquals(today, vm.uiState.value.pendingOneDay?.startDate)
+
+        vm.onConfirmOneDay()
+
+        assertEquals(today, vm.uiState.value.records.single().endDate)
+        assertNull(vm.uiState.value.pendingOneDay)
+    }
+
+    @Test
+    fun `cancelling the one day confirmation changes nothing`() = runTest {
+        repository.add(today, LocalDate.of(2026, 6, 20), today)
+        val vm = HistoryViewModel(repository, setupRepository, clock)
+
+        vm.onMainActionTapped()
+        vm.onDismissOneDay()
+
+        assertEquals(LocalDate.of(2026, 6, 20), vm.uiState.value.records.single().endDate)
+        assertNull(vm.uiState.value.pendingOneDay)
     }
 
     @Test

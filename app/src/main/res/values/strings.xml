@@ -93,8 +93,30 @@
     <string name="day_detail_no_cycle">Todavía no hay datos del ciclo para este día.</string>
     <string name="day_detail_disclaimer">Las fases y la ventana fértil son una aproximación del método del calendario: no son exactas con ciclos irregulares. No uses esta estimación para evitar ni buscar un embarazo.</string>
     <string name="day_detail_fertile">Ventana fértil estimada</string>
-    <string name="home_today_phase" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo, fase %2$s</string>
-    <string name="home_today_cycle_day" tools:ignore="PluralsCandidate">Hoy: día %1$d del ciclo</string>
+
+    <!-- Home (HOME §2-§5) -->
+    <string name="home_headline_no_records">Registra tu última menstruación</string>
+    <string name="home_headline_menstruation_day" tools:ignore="PluralsCandidate">Día %1$d de menstruación</string>
+    <plurals name="home_headline_delay">
+        <item quantity="one">Retraso de %d día</item>
+        <item quantity="other">Retraso de %d días</item>
+    </plurals>
+    <string name="home_headline_period_today">Menstruación estimada hoy</string>
+    <string name="home_headline_ovulation_today">Ovulación estimada hoy</string>
+    <plurals name="home_headline_ovulation_in">
+        <item quantity="one">Ovulación en %d día</item>
+        <item quantity="other">Ovulación en %d días</item>
+    </plurals>
+    <plurals name="home_headline_period_in">
+        <item quantity="one">Menstruación en %d día</item>
+        <item quantity="other">Menstruación en %d días</item>
+    </plurals>
+    <string name="home_phase_day" tools:ignore="PluralsCandidate">Fase %1$s · Día %2$d</string>
+    <string name="home_action_start">Empezó mi menstruación</string>
+    <string name="home_action_finish">Terminó mi menstruación</string>
+    <string name="home_one_day_body">Quedará registrada una menstruación de 1 día. ¿Quieres guardarla?</string>
+    <string name="home_one_day_confirm">Guardar</string>
+    <string name="home_write_error">No se pudo guardar el cambio. Inténtalo de nuevo.</string>
 
     <!-- Settings (STAGE_4 §3) -->
     <string name="settings_title">Ajustes</string>

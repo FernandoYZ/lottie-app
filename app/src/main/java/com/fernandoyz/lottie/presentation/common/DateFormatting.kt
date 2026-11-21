@@ -11,5 +11,10 @@ private val shortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
 /** "2 de noviembre de 2026". */
 fun formatLongDate(date: LocalDate): String = date.format(longDateFormatter)
 
+private val dayHeaderFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM", spanish)
+
+/** "sáb 21 nov". */
+fun formatDayHeader(date: LocalDate): String = date.format(dayHeaderFormatter)
+
 /** "2 nov 2026". */
 fun formatShortDate(date: LocalDate): String = date.format(shortDateFormatter)
