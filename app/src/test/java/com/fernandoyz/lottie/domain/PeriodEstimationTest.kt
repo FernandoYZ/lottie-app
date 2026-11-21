@@ -65,4 +65,25 @@ class PeriodEstimationTest {
         assertFalse(PeriodEstimation.estimate(records, null, today = day(6, 15))!!.isPast) // start 15/06
         assertTrue(PeriodEstimation.estimate(records, null, today = day(6, 16))!!.isPast)
     }
+
+    @Test
+    fun `upcoming estimates repeat the cycle for the next 12 months`() {
+        val records = listOf(MenstruationRecord(1, day(6, 1), day(6, 4))) // 28 day cycle, 4 day menstruation
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = null, today = today)
+
+        val upcoming = PeriodEstimation.upcoming(records, estimate, today)
+
+        assertEquals(estimate, upcoming.first())
+        assertEquals(day(7, 27) to day(7, 30), upcoming[1].start to upcoming[1].end)
+        assertEquals(LocalDate.of(2027, 5, 31), upcoming.last().start) // the next one, 28/06/2027, is beyond 12 months
+        assertEquals(13, upcoming.size)
+    }
+
+    @Test
+    fun `upcoming estimates follow a manual cycle length`() {
+        val records = listOf(MenstruationRecord(1, day(6, 1), day(6, 4)))
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = 35, today = today)
+
+        assertEquals(day(8, 10), PeriodEstimation.upcoming(records, estimate, today)[1].start)
+    }
 }

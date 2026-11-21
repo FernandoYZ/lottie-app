@@ -67,7 +67,7 @@ object CyclePhases {
         )
     }
 
-    /** Estimated ovulation days shown on the calendar: real cycles plus the next estimated one. */
+    /** Estimated ovulation days shown on the calendar: real cycles plus the estimated ones of the next 12 months. */
     fun ovulationDays(month: YearMonth, records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): Set<LocalDate> =
         calendarCycles(records, estimate, today).mapNotNull { it.ovulation }.filter { YearMonth.from(it) == month }.toSet()
 
@@ -84,7 +84,10 @@ object CyclePhases {
                 Cycle(latest.startDate, latest.shownEnd(today), estimate?.start, estimated = true)
             },
         )
-        return cycles
+        // Repeated estimated cycles (PREDICTIONS §2); each ends where the next estimated one starts.
+        val upcoming = if (sorted.isEmpty()) emptyList() else PeriodEstimation.upcoming(records, estimate, today)
+        val repeated = upcoming.zipWithNext { current, next -> Cycle(current.start, current.end, next.start, estimated = true) }
+        return cycles + repeated
     }
 
     private fun cycleAt(

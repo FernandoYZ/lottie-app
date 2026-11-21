@@ -23,7 +23,8 @@ object CalendarMarks {
     ): Map<LocalDate, DayMark> {
         val marks = mutableMapOf<LocalDate, DayMark>()
 
-        estimate?.let { addRange(marks, month, it.start, it.end, DayMark.Estimated) }
+        // The next estimate and its repetitions for the following 12 months (PREDICTIONS §2).
+        PeriodEstimation.upcoming(records, estimate, today).forEach { addRange(marks, month, it.start, it.end, DayMark.Estimated) }
         // Registered days are added last so they win over estimated ones.
         records.forEach { record ->
             val end = record.shownEnd(today)

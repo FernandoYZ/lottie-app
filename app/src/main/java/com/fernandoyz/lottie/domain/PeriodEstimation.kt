@@ -2,6 +2,7 @@ package com.fernandoyz.lottie.domain
 
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** Orientative estimate of the next menstruation. Never a certainty (PRODUCT §3, RNF-012). */
 data class PeriodEstimate(
@@ -33,5 +34,25 @@ object PeriodEstimation {
             isPast = today.isAfter(start),
             isApproximate = manualCycleLengthDays == null && learnedCycle == null,
         )
+    }
+
+    /** Predictions are shown for cycles starting within this many months after today (PREDICTIONS §1). */
+    private const val UPCOMING_MONTHS = 12L
+
+    /**
+     * The next [estimate] followed by its repetitions (PREDICTIONS §1, approved 2026-11-21): each start is the
+     * previous one plus the estimated cycle length, each lasts like [estimate]; starts up to 12 months after today.
+     */
+    fun upcoming(records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): List<PeriodEstimate> {
+        if (estimate == null) return emptyList()
+        val latest = records.maxByOrNull { it.startDate } ?: return listOf(estimate)
+        val cycleDays = ChronoUnit.DAYS.between(latest.startDate, estimate.start)
+        if (cycleDays <= 0) return listOf(estimate)
+        val periodDays = ChronoUnit.DAYS.between(estimate.start, estimate.end)
+        val limit = today.plusMonths(UPCOMING_MONTHS)
+        return generateSequence(estimate.start) { it.plusDays(cycleDays) }
+            .takeWhile { it == estimate.start || !it.isAfter(limit) }
+            .map { start -> estimate.copy(start = start, end = start.plusDays(periodDays), isPast = today.isAfter(start)) }
+            .toList()
     }
 }

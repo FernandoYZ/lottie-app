@@ -80,4 +80,11 @@ class CyclePhasesTest {
         assertEquals(setOf(day(6, 15)), CyclePhases.ovulationDays(YearMonth.of(2026, 6), records, estimate, today))
         assertEquals(setOf(day(7, 13)), CyclePhases.ovulationDays(YearMonth.of(2026, 7), records, estimate, today))
     }
+
+    @Test
+    fun `later estimated cycles show their ovulation and fertile window`() {
+        // Estimated starts 27/07, 24/08 and 21/09: the cycle of 24/08 ovulates on 07/09. The cycle of 21/09 starts its window on 30/09.
+        assertEquals(setOf(day(9, 7)), CyclePhases.ovulationDays(YearMonth.of(2026, 9), records, estimate, today))
+        assertEquals((2..7).map { day(9, it) }.toSet() + day(9, 30), CyclePhases.fertileDays(YearMonth.of(2026, 9), records, estimate, today))
+    }
 }

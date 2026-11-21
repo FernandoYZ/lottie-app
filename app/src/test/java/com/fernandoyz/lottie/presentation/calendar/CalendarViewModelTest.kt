@@ -172,7 +172,8 @@ class CalendarViewModelTest {
 
         assertEquals(day(6, 1), vm.uiState.value.selectedDay)
         assertEquals(CyclePhase.Ovulation, vm.uiState.value.selectedDayInfo?.phase)
-        assertEquals(setOf(day(6, 1)), vm.uiState.value.ovulationDaysFor(YearMonth.of(2026, 6)))
+        // 29/06 is the ovulation of the repeated estimated cycle (PREDICTIONS §2).
+        assertEquals(setOf(day(6, 1), day(6, 29)), vm.uiState.value.ovulationDaysFor(YearMonth.of(2026, 6)))
         assertEquals(1, stored().size)
 
         vm.onDismissDayDetail()

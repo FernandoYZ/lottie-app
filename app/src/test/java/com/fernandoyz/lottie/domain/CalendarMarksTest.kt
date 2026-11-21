@@ -71,4 +71,14 @@ class CalendarMarksTest {
         assertEquals(setOf(day(6, 1), day(6, 2)), marks.keys)
         assertTrue(CalendarMarks.marksFor(YearMonth.of(2026, 5), records, null, today).keys.containsAll(setOf(day(5, 30), day(5, 31))))
     }
+
+    @Test
+    fun `later estimated menstruations are marked too`() {
+        val records = listOf(MenstruationRecord(1, day(6, 1), day(6, 4)))
+        val estimate = PeriodEstimation.estimate(records, manualCycleLengthDays = null, today = today) // 29/06, then every 28 days
+
+        val marks = CalendarMarks.marksFor(YearMonth.of(2026, 8), records, estimate, today)
+
+        assertEquals((24..27).associate { day(8, it) to DayMark.Estimated }, marks)
+    }
 }
