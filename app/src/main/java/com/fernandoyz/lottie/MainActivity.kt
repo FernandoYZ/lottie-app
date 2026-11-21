@@ -5,11 +5,8 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,10 +51,16 @@ class MainActivity : FragmentActivity() {
             LottieTheme {
                 val lockState by app.appLock.state.collectAsStateWithLifecycle()
                 // Nothing until the setting is read, so no data flashes before the lock.
-                if (lockState != LockState.Loading) {
-                    val locked = lockState == LockState.Locked
-                    // The app stays composed under the lock so it keeps its screen; hidden from screen readers while locked.
-                    Box(Modifier.fillMaxSize().then(if (locked) Modifier.clearAndSetSemantics {} else Modifier)) {
+                // While locked the app is not composed at all, so no touch, key, focus or screen reader can reach it.
+                // The holder keeps its saved state, so unlocking returns to the same screen.
+                val appState = rememberSaveableStateHolder()
+                when (lockState) {
+                    LockState.Loading -> Unit
+                    LockState.Locked -> {
+                        BackHandler { moveTaskToBack(true) }
+                        LockScreen(onUnlock = { authenticator.authenticate {} })
+                    }
+                    LockState.Unlocked -> appState.SaveableStateProvider("app") {
                         LottieApp(
                             setupRepository = app.setupRepository,
                             historyRepository = app.historyRepository,
@@ -69,11 +72,6 @@ class MainActivity : FragmentActivity() {
                             privacyRepository = app.privacyRepository,
                             authenticator = authenticator,
                         )
-                    }
-                    if (locked) {
-                        // Back leaves the app instead of reaching the screen under the lock.
-                        BackHandler { moveTaskToBack(true) }
-                        LockScreen(onUnlock = { authenticator.authenticate {} })
                     }
                 }
             }
