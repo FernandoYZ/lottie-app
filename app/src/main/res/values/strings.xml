@@ -278,4 +278,11 @@
     <string name="reminders_time">Hora</string>
     <string name="reminders_time_dialog_title">Hora de los recordatorios</string>
     <string name="reminders_permission_denied">Lottie no tiene permiso para enviar notificaciones. Puedes activarlo en los ajustes del teléfono.</string>
+    <!-- Privacy (SECURITY §1) -->
+    <string name="privacy_title">Privacidad</string>
+    <string name="privacy_app_lock">Bloquear Lottie</string>
+    <string name="privacy_app_lock_unavailable">Configura un bloqueo de pantalla en el teléfono para usar esta opción.</string>
+    <string name="lock_title">Lottie está bloqueada</string>
+    <string name="lock_unlock">Desbloquear</string>
+    <string name="lock_prompt_title">Desbloquear Lottie</string>
 </resources>

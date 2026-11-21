@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.domain.Reminder
@@ -40,6 +41,11 @@ data class SettingsUiState(
     val reminders: ReminderSettings = ReminderSettings(),
     val reminderSaveFailed: Boolean = false,
     val notificationPermissionDenied: Boolean = false,
+    /** "Bloquear Lottie" (SECURITY §1). */
+    val appLockEnabled: Boolean = false,
+    /** The phone has no screen lock, so the switch cannot be turned on. */
+    val appLockUnavailable: Boolean = false,
+    val appLockSaveFailed: Boolean = false,
 ) {
     /** Null when the field is empty: the cycle length is learned automatically. */
     private val validation: CycleLengthValidation? =
@@ -61,6 +67,7 @@ class SettingsViewModel(
     private val repository: SetupRepository,
     private val historyRepository: HistoryRepository,
     private val reminderRepository: ReminderRepository,
+    private val privacyRepository: PrivacyRepository,
     /** Called with the saved settings after every reminder change, to reschedule the daily check. */
     private val onRemindersChanged: (ReminderSettings) -> Unit,
 ) : ViewModel() {
@@ -69,6 +76,15 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            try {
+                privacyRepository.appLockEnabled.collect { enabled -> _uiState.update { it.copy(appLockEnabled = enabled) } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(appLockSaveFailed = true) }
+            }
+        }
         viewModelScope.launch {
             try {
                 reminderRepository.settings.collect { settings -> _uiState.update { it.copy(reminders = settings) } }
@@ -139,6 +155,22 @@ class SettingsViewModel(
         _uiState.update { it.copy(notificationPermissionDenied = true) }
     }
 
+    /** Called after the phone lock was confirmed when turning it on, or directly when turning it off. */
+    fun onAppLockChanged(enabled: Boolean) {
+        _uiState.update { it.copy(appLockEnabled = enabled, appLockUnavailable = false, appLockSaveFailed = false) }
+        viewModelScope.launch {
+            try {
+                privacyRepository.setAppLockEnabled(enabled)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { it.copy(appLockEnabled = !enabled, appLockSaveFailed = true) }
+            }
+        }
+    }
+
+    fun onAppLockUnavailable() = _uiState.update { it.copy(appLockUnavailable = true) }
+
     private fun saveReminders(write: suspend () -> Unit) {
         _uiState.update { it.copy(reminderSaveFailed = false) }
         viewModelScope.launch {
@@ -159,10 +191,11 @@ class SettingsViewModel(
             repository: SetupRepository,
             historyRepository: HistoryRepository,
             reminderRepository: ReminderRepository,
+            privacyRepository: PrivacyRepository,
             onRemindersChanged: (ReminderSettings) -> Unit,
         ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { SettingsViewModel(repository, historyRepository, reminderRepository, onRemindersChanged) }
+                initializer { SettingsViewModel(repository, historyRepository, reminderRepository, privacyRepository, onRemindersChanged) }
             }
     }
 }

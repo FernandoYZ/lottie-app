@@ -14,8 +14,10 @@ coroutinesTest = "1.11.0"
 room = "2.8.5"
 ksp = "2.3.14"
 work = "2.11.2"
+biometric = "1.1.0"
 
 [libraries]
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

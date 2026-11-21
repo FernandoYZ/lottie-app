@@ -25,6 +25,8 @@ import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.domain.ReminderSettings
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.PrivacyRepository
+import com.fernandoyz.lottie.security.DeviceAuthenticator
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import java.time.Clock
 
@@ -38,6 +40,8 @@ fun LottieApp(
     onRemindersChanged: (ReminderSettings) -> Unit,
     clock: Clock,
     openDailyLogToday: Boolean = false,
+    privacyRepository: PrivacyRepository,
+    authenticator: DeviceAuthenticator? = null,
 ) {
     val startViewModel: StartViewModel = viewModel(factory = StartViewModel.factory(setupRepository))
     val startState by startViewModel.startState.collectAsStateWithLifecycle()
@@ -54,6 +58,8 @@ fun LottieApp(
                 dailyLogRepository = dailyLogRepository,
                 reminderRepository = reminderRepository,
                 onRemindersChanged = onRemindersChanged,
+                privacyRepository = privacyRepository,
+                authenticator = authenticator,
                 clock = clock,
                 modifier = contentModifier,
             )
@@ -64,6 +70,8 @@ fun LottieApp(
                 dailyLogRepository = dailyLogRepository,
                 reminderRepository = reminderRepository,
                 onRemindersChanged = onRemindersChanged,
+                privacyRepository = privacyRepository,
+                authenticator = authenticator,
                 clock = clock,
                 openDailyLogToday = openDailyLogToday,
                 modifier = contentModifier,

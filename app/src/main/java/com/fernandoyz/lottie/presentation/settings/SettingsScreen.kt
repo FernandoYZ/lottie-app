@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.security.DeviceAuthenticator
 import com.fernandoyz.lottie.domain.Reminder
 import com.fernandoyz.lottie.presentation.common.CycleLengthField
 import com.fernandoyz.lottie.ui.theme.LottieTheme
@@ -58,7 +59,7 @@ import java.time.format.DateTimeFormatter
 
 /** Stateful container: connects [SettingsViewModel] with the stateless [SettingsScreen]. */
 @Composable
-fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier) {
+fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier, authenticator: DeviceAuthenticator? = null) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -85,6 +86,14 @@ fun SettingsRoute(viewModel: SettingsViewModel, modifier: Modifier = Modifier) {
             }
         },
         onReminderTimeChanged = viewModel::onReminderTimeChanged,
+        // Turning the lock on needs the phone lock first; turning it off does not (SECURITY §1).
+        onAppLockToggled = { enabled ->
+            when {
+                !enabled -> viewModel.onAppLockChanged(false)
+                authenticator == null || !authenticator.isAvailable() -> viewModel.onAppLockUnavailable()
+                else -> authenticator.authenticate { confirmed -> if (confirmed) viewModel.onAppLockChanged(true) }
+            }
+        },
         modifier = modifier,
     )
 }
@@ -97,6 +106,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onReminderToggled: (Reminder, Boolean) -> Unit = { _, _ -> },
     onReminderTimeChanged: (LocalTime) -> Unit = {},
+    onAppLockToggled: (Boolean) -> Unit = {},
 ) {
     if (uiState.isLoading) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -155,6 +165,32 @@ fun SettingsScreen(
 
         HorizontalDivider()
         RemindersSection(uiState, onReminderToggled, onReminderTimeChanged)
+        HorizontalDivider()
+        PrivacySection(uiState, onAppLockToggled)
+    }
+}
+
+/** "Privacidad" (SECURITY §1). */
+@Composable
+private fun PrivacySection(uiState: SettingsUiState, onAppLockToggled: (Boolean) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.privacy_title),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(value = uiState.appLockEnabled, role = Role.Switch, onValueChange = onAppLockToggled)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.privacy_app_lock), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Switch(checked = uiState.appLockEnabled, onCheckedChange = null)
+        }
+        if (uiState.appLockUnavailable) ErrorText(stringResource(R.string.privacy_app_lock_unavailable))
+        if (uiState.appLockSaveFailed) ErrorText(stringResource(R.string.settings_save_error))
     }
 }
 

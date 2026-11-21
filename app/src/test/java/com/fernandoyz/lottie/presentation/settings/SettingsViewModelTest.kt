@@ -3,6 +3,7 @@ package com.fernandoyz.lottie.presentation.settings
 import com.fernandoyz.lottie.MainDispatcherRule
 import com.fernandoyz.lottie.data.FailingDataStore
 import com.fernandoyz.lottie.data.InMemoryDataStore
+import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.data.history.FakeMenstruationRecordDao
 import com.fernandoyz.lottie.data.history.HistoryRepository
 import com.fernandoyz.lottie.data.repository.SetupRepository
@@ -34,10 +35,11 @@ class SettingsViewModelTest {
     private val history = HistoryRepository(FakeMenstruationRecordDao(), repository)
 
     private val reminders = ReminderRepository(InMemoryDataStore())
+    private val privacy = PrivacyRepository(InMemoryDataStore())
     private val scheduled = mutableListOf<ReminderSettings>()
 
     private fun viewModel(reminderRepository: ReminderRepository = reminders) =
-        SettingsViewModel(repository, history, reminderRepository, scheduled::add)
+        SettingsViewModel(repository, history, reminderRepository, privacy, scheduled::add)
 
     private suspend fun completeSetup() = repository.save(InitialSetup(setupDate, setupDate.plusDays(3)))
 
@@ -139,7 +141,7 @@ class SettingsViewModelTest {
     @Test
     fun `save failure is reported and not shown as saved`() = runTest {
         val failing = SetupRepository(FailingDataStore(failReads = false, failWrites = true))
-        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing), reminders, scheduled::add)
+        val vm = SettingsViewModel(failing, HistoryRepository(FakeMenstruationRecordDao(), failing), reminders, privacy, scheduled::add)
 
         vm.onCycleLengthChanged("30")
         vm.onSave()
@@ -218,5 +220,19 @@ class SettingsViewModelTest {
         assertTrue(vm.uiState.value.reminderSaveFailed)
         assertEquals(emptySet<Reminder>(), vm.uiState.value.reminders.enabled)
         assertTrue(scheduled.isEmpty())
+    }
+
+    @Test
+    fun `the lock switch is stored and a missing screen lock is reported`() = runTest {
+        val vm = viewModel()
+        assertEquals(false, vm.uiState.value.appLockEnabled)
+
+        vm.onAppLockUnavailable()
+        assertEquals(true, vm.uiState.value.appLockUnavailable)
+
+        vm.onAppLockChanged(true)
+        assertEquals(true, vm.uiState.value.appLockEnabled)
+        assertEquals(false, vm.uiState.value.appLockUnavailable)
+        assertEquals(true, privacy.appLockEnabled.first())
     }
 }

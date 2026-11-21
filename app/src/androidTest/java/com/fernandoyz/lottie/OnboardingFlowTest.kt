@@ -16,6 +16,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.data.dailylog.DailyLogRepository
 import com.fernandoyz.lottie.data.reminders.ReminderRepository
 import com.fernandoyz.lottie.data.history.HistoryRepository
+import com.fernandoyz.lottie.data.privacy.PrivacyRepository
 import com.fernandoyz.lottie.data.history.LottieDatabase
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.HistoryValidationError
@@ -72,7 +73,7 @@ class OnboardingFlowTest {
     }
 
     private fun setApp() {
-        composeRule.setContent { LottieTheme { LottieApp(repository, historyRepository, dailyLogRepository, reminderRepository, onRemindersChanged = {}, clock = clock) } }
+        composeRule.setContent { LottieTheme { LottieApp(repository, historyRepository, dailyLogRepository, reminderRepository, onRemindersChanged = {}, clock = clock, privacyRepository = PrivacyRepository(dataStore)) } }
     }
 
     @Test
