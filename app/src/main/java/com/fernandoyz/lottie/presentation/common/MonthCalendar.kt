@@ -17,7 +17,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,7 +65,8 @@ private fun monthOf(page: Int): YearMonth = firstPageMonth.plusMonths(page.toLon
 /**
  * Month grid shared by the initial setup and the calendar screen. Weeks start on Monday (STAGE_3 §3).
  * Swiping changes month like book pages: finger to the right shows the previous month (STAGE_4 §6);
- * the buttons do the same. Days are tappable when [onDayClick] is not null (STAGE_4 §2).
+ * the arrows do the same. Days are tappable when [onDayClick] is not null (STAGE_4 §2). Today has a ring and
+ * "Hoy" (CALENDAR_VIEW §1); [cycleDaysFor] adds the cycle day of each day (CALENDAR_VIEW §4).
  * [initialMonth] is read once; [onMonthChanged] reports the month that settles on screen.
  */
 @Composable
@@ -76,6 +81,7 @@ fun MonthCalendar(
     ovulationDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
     fertileDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
     loggedDays: Set<LocalDate> = emptySet(),
+    cycleDaysFor: (YearMonth) -> Map<LocalDate, Int> = { emptyMap() },
 ) {
     val pagerState = rememberPagerState(initialPage = pageOf(initialMonth)) { PAGE_COUNT }
     val scope = rememberCoroutineScope()
@@ -86,8 +92,8 @@ fun MonthCalendar(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } }) {
-                Text("‹ " + stringResource(R.string.calendar_previous_month))
+            IconButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) } }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.calendar_previous_month))
             }
             Text(
                 text = monthOf(pagerState.currentPage).format(monthTitleFormatter).replaceFirstChar { it.titlecase(spanish) },
@@ -97,8 +103,8 @@ fun MonthCalendar(
                     .weight(1f)
                     .semantics { heading() },
             )
-            TextButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } }) {
-                Text(stringResource(R.string.calendar_next_month) + " ›")
+            IconButton(onClick = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.calendar_next_month))
             }
         }
         WeekdayHeader()
@@ -111,6 +117,7 @@ fun MonthCalendar(
                 fertileDays = fertileDaysFor(month),
                 loggedDays = loggedDays,
                 today = today,
+                cycleDays = cycleDaysFor(month),
                 onDayClick = onDayClick,
                 onDayLongClick = onDayLongClick,
             )
@@ -141,6 +148,7 @@ private fun MonthGrid(
     fertileDays: Set<LocalDate>,
     loggedDays: Set<LocalDate>,
     today: LocalDate,
+    cycleDays: Map<LocalDate, Int>,
     onDayClick: ((LocalDate) -> Unit)?,
     onDayLongClick: ((LocalDate) -> Unit)?,
 ) {
@@ -160,6 +168,7 @@ private fun MonthGrid(
                                 isOvulation = date in ovulationDays,
                                 isFertile = date in fertileDays,
                                 isLogged = date in loggedDays,
+                                cycleDay = cycleDays[date],
                                 onClick = onDayClick?.let { click -> { click(date) } },
                                 onLongClick = onDayLongClick?.let { longClick -> { longClick(date) } },
                             )
@@ -180,6 +189,7 @@ private fun DayCell(
     isOvulation: Boolean,
     isFertile: Boolean,
     isLogged: Boolean,
+    cycleDay: Int?,
     onClick: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
 ) {
@@ -195,16 +205,19 @@ private fun DayCell(
         isFertile -> stringResource(R.string.calendar_day_fertile, markDescription)
         else -> markDescription
     }
-    val description = if (isLogged) stringResource(R.string.calendar_day_logged, phaseDescription) else phaseDescription
+    val loggedDescription = if (isLogged) stringResource(R.string.calendar_day_logged, phaseDescription) else phaseDescription
+    val description = if (isToday) stringResource(R.string.calendar_day_today, loggedDescription) else loggedDescription
     val fertileBackground = MaterialTheme.colorScheme.tertiaryContainer
     val detailLabel = stringResource(R.string.calendar_day_detail_action)
     val interactive = onClick != null || onLongClick != null
+    val textColor = when (mark) {
+        DayMark.Registered -> MaterialTheme.colorScheme.onPrimary
+        DayMark.Upcoming -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> Color.Unspecified
+    }
     Box(
         modifier = Modifier
-            .padding(3.dp)
             .fillMaxSize()
-            .then(if (isFertile && mark == null) Modifier.background(fertileBackground, CircleShape) else Modifier)
-            .dayMark(mark, primary, MaterialTheme.colorScheme.primaryContainer)
             .then(
                 if (interactive) {
                     Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick)
@@ -222,34 +235,45 @@ private fun DayCell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (isLogged) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 4.dp)
-                    .size(6.dp)
-                    .background(MaterialTheme.colorScheme.secondary, CircleShape),
+        // Ring around today, outside any other mark (CALENDAR_VIEW §1).
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(2.dp)
+                .then(if (isToday) Modifier.border(2.dp, MaterialTheme.colorScheme.outline, CircleShape) else Modifier)
+                .padding(3.dp)
+                .then(if (isFertile && mark == null) Modifier.background(fertileBackground, CircleShape) else Modifier)
+                .dayMark(mark, primary, MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (isToday) {
+                    Text(text = stringResource(R.string.calendar_today), color = textColor, style = MaterialTheme.typography.labelSmall)
+                }
+                Text(text = date.dayOfMonth.toString(), color = textColor, style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                if (isLogged) Dot(MaterialTheme.colorScheme.secondary)
+                if (isOvulation) Dot(MaterialTheme.colorScheme.tertiary)
+            }
+        }
+        if (cycleDay != null) {
+            Text(
+                text = cycleDay.toString(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.align(Alignment.TopStart),
             )
         }
-        if (isOvulation) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 4.dp)
-                    .size(6.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
-            )
-        }
-        Text(
-            text = date.dayOfMonth.toString(),
-            color = when (mark) {
-                DayMark.Registered -> MaterialTheme.colorScheme.onPrimary
-                DayMark.Upcoming -> MaterialTheme.colorScheme.onPrimaryContainer
-                else -> Color.Unspecified
-            },
-            style = if (isToday) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodyMedium,
-        )
     }
+}
+
+@Composable
+private fun Dot(color: Color) {
+    Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
 }
 
 private fun Modifier.dayMark(mark: DayMark?, primary: Color, primaryContainer: Color): Modifier = when (mark) {

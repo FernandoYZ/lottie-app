@@ -7,16 +7,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -51,6 +60,7 @@ fun CalendarRoute(viewModel: CalendarViewModel, onOpenDailyLog: (LocalDate) -> U
         onDismissDelete = viewModel::onDismissDelete,
         onDayLongPressed = viewModel::onDayLongPressed,
         onDismissDayDetail = viewModel::onDismissDayDetail,
+        onEditToggled = viewModel::onEditToggled,
         modifier = modifier,
     )
 }
@@ -66,6 +76,7 @@ fun CalendarScreen(
     onDismissDayDetail: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenDailyLog: (LocalDate) -> Unit = {},
+    onEditToggled: () -> Unit = {},
 ) {
     if (uiState.isLoading) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -85,11 +96,20 @@ fun CalendarScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = stringResource(R.string.calendar_title), style = MaterialTheme.typography.headlineMedium)
-        Text(
-            text = pluralStringResource(R.plurals.calendar_instructions, uiState.periodLengthDays, uiState.periodLengthDays),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        var showLegend by rememberSaveable { mutableStateOf(false) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.calendar_title),
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = { showLegend = true }) {
+                Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.calendar_legend_action))
+            }
+        }
+        if (uiState.isEditing) {
+            Text(text = stringResource(R.string.calendar_edit_hint), style = MaterialTheme.typography.bodyMedium)
+        }
 
         MonthCalendar(
             initialMonth = uiState.month,
@@ -101,6 +121,7 @@ fun CalendarScreen(
             ovulationDaysFor = uiState::ovulationDaysFor,
             fertileDaysFor = uiState::fertileDaysFor,
             loggedDays = uiState.loggedDays,
+            cycleDaysFor = uiState::cycleDaysFor,
         )
 
         val message = uiState.rejection?.let { stringResource(it.messageRes()) }
@@ -113,7 +134,24 @@ fun CalendarScreen(
             )
         }
 
-        CalendarLegend()
+        if (uiState.isEditing) {
+            Button(onClick = onEditToggled, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text(stringResource(R.string.calendar_edit_done))
+            }
+        } else {
+            OutlinedButton(onClick = onEditToggled, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text(stringResource(R.string.calendar_edit))
+            }
+        }
+
+        if (showLegend) {
+            AlertDialog(
+                onDismissRequest = { showLegend = false },
+                title = { Text(stringResource(R.string.calendar_legend_title)) },
+                text = { CalendarLegend() },
+                confirmButton = { TextButton(onClick = { showLegend = false }) { Text(stringResource(R.string.action_close)) } },
+            )
+        }
     }
 
     uiState.pendingDelete?.let { record ->

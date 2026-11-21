@@ -90,7 +90,7 @@ class Stage3ScreensTest {
         composeRule.onNodeWithText(text(R.string.estimate_title)).assertDoesNotExist()
     }
 
-    private fun setCalendar(state: CalendarUiState, onDayTapped: (LocalDate) -> Unit = {}) {
+    private fun setCalendar(state: CalendarUiState, onDayTapped: (LocalDate) -> Unit = {}, onEditToggled: () -> Unit = {}) {
         composeRule.setContent {
             LottieTheme {
                 CalendarScreen(
@@ -101,6 +101,7 @@ class Stage3ScreensTest {
                     onDismissDelete = {},
                     onDayLongPressed = {},
                     onDismissDayDetail = {},
+                    onEditToggled = onEditToggled,
                 )
             }
         }
@@ -120,6 +121,7 @@ class Stage3ScreensTest {
         composeRule.onNodeWithContentDescription(
             context.getString(R.string.calendar_day_estimated, formatLongDate(LocalDate.of(2026, 6, 29))),
         ).assertExists()
+        composeRule.onNodeWithContentDescription(text(R.string.calendar_legend_action)).performClick()
         composeRule.onNodeWithText(text(R.string.calendar_legend_registered)).assertExists()
         composeRule.onNodeWithText(text(R.string.calendar_legend_upcoming)).assertExists()
         composeRule.onNodeWithText(text(R.string.calendar_legend_estimated)).assertExists()
@@ -133,6 +135,25 @@ class Stage3ScreensTest {
         composeRule.onNodeWithContentDescription(formatLongDate(LocalDate.of(2026, 6, 10))).performClick()
 
         assertEquals(LocalDate.of(2026, 6, 10), tapped)
+    }
+
+    @Test
+    fun calendarMarksTodayAndTogglesEditMode() {
+        var toggled = false
+        setCalendar(CalendarUiState(today = today, isLoading = false), onEditToggled = { toggled = true })
+
+        composeRule.onNodeWithContentDescription(context.getString(R.string.calendar_day_today, formatLongDate(today))).assertExists()
+        composeRule.onNodeWithText(text(R.string.calendar_edit_hint)).assertDoesNotExist()
+        composeRule.onNodeWithText(text(R.string.calendar_edit)).performClick()
+        assertEquals(true, toggled)
+    }
+
+    @Test
+    fun calendarInEditModeShowsTheHintAndDone() {
+        setCalendar(CalendarUiState(today = today, isLoading = false, isEditing = true))
+
+        composeRule.onNodeWithText(text(R.string.calendar_edit_hint)).assertIsDisplayed()
+        composeRule.onNodeWithText(text(R.string.calendar_edit_done)).assertExists()
     }
 
     @Test

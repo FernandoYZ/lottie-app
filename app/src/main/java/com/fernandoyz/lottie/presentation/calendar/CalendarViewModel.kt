@@ -43,10 +43,12 @@ data class CalendarUiState(
     val rejection: HistoryValidationError? = null,
     val writeFailed: Boolean = false,
     val isWriting: Boolean = false,
-    /** Day whose detail panel is open after a long press (day-detail S1). */
+    /** Day whose detail panel is open after a tap or a long press (CALENDAR_VIEW §2). */
     val selectedDay: LocalDate? = null,
     /** Daily logs by date (DAILY_LOG §5). */
     val logs: Map<LocalDate, DailyLog> = emptyMap(),
+    /** Taps edit menstruations only in edit mode (CALENDAR_VIEW §2). */
+    val isEditing: Boolean = false,
 ) {
     val selectedDayInfo: CycleDayInfo? = selectedDay?.let { CyclePhases.dayInfo(it, records, estimate, today) }
 
@@ -58,6 +60,12 @@ data class CalendarUiState(
 
     fun fertileDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.fertileDays(month, records, estimate, today)
 
+    /** Cycle day of each day with cycle data, same calculation as the day detail (CALENDAR_VIEW §4). */
+    fun cycleDaysFor(month: YearMonth): Map<LocalDate, Int> = (1..month.lengthOfMonth())
+        .map(month::atDay)
+        .mapNotNull { date -> CyclePhases.dayInfo(date, records, estimate, today)?.let { date to it.cycleDay } }
+        .toMap()
+
     /** Marks for any month, so the neighbour pages show them while swiping. */
     fun marksFor(month: YearMonth): Map<LocalDate, DayMark> = CalendarMarks.marksFor(month, records, estimate, today)
 
@@ -67,7 +75,7 @@ data class CalendarUiState(
     val periodLengthDays: Int = CycleStatistics.periodLengthDays(records, today)
 }
 
-/** Month calendar where menstruations are registered by tapping days (STAGE_4 §2). */
+/** Month calendar: a tap shows the day detail; in edit mode it registers menstruations (STAGE_4 §2, CALENDAR_VIEW §2). */
 class CalendarViewModel(
     private val historyRepository: HistoryRepository,
     setupRepository: SetupRepository,
@@ -109,6 +117,10 @@ class CalendarViewModel(
 
     fun onDayTapped(date: LocalDate) {
         val state = _uiState.value
+        if (!state.isEditing) {
+            onDayLongPressed(date)
+            return
+        }
         if (state.isLoading || state.loadFailed || state.isWriting || state.pendingDelete != null) return
         _uiState.update { it.copy(rejection = null, writeFailed = false) }
 
@@ -128,6 +140,8 @@ class CalendarViewModel(
     }
 
     fun onDismissDayDetail() = _uiState.update { it.copy(selectedDay = null) }
+
+    fun onEditToggled() = _uiState.update { it.copy(isEditing = !it.isEditing, rejection = null, writeFailed = false) }
 
     fun onConfirmDelete() {
         val record = _uiState.value.pendingDelete ?: return

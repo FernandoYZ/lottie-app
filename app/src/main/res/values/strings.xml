@@ -58,10 +58,14 @@
 
     <!-- Calendar (STAGE_3 §3, STAGE_4 §2) -->
     <string name="calendar_title">Calendario</string>
-    <plurals name="calendar_instructions">
-        <item quantity="one">Toca un día para marcar el inicio de una menstruación: se marcará %d día. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla. Desliza para cambiar de mes.</item>
-        <item quantity="other">Toca un día para marcar el inicio de una menstruación: se marcarán %d días. Toca un día marcado para terminarla el día anterior, o su primer día para eliminarla. Desliza para cambiar de mes.</item>
-    </plurals>
+    <string name="calendar_edit">Editar menstruaciones</string>
+    <string name="calendar_edit_done">Listo</string>
+    <string name="calendar_edit_hint">Toca un día para marcar o terminar una menstruación. Toca su primer día para borrarla.</string>
+    <string name="calendar_legend_action">Qué significa cada marca</string>
+    <string name="calendar_legend_title">Marcas del calendario</string>
+    <string name="calendar_today">Hoy</string>
+    <string name="calendar_day_today">Hoy, %1$s</string>
+    <string name="action_close">Cerrar</string>
     <string name="calendar_previous_month">Mes anterior</string>
     <string name="calendar_next_month">Mes siguiente</string>
     <string name="calendar_legend_registered">Menstruación registrada</string>

@@ -44,6 +44,9 @@ class CalendarViewModelTest {
 
     private fun viewModel() = CalendarViewModel(historyRepository, setupRepository, dailyLogRepository, clock)
 
+    // Edits happen only in edit mode (CALENDAR_VIEW §2).
+    private fun editingViewModel() = viewModel().also { it.onEditToggled() }
+
     @Test
     fun `logged days and the selected day log are known`() = runTest {
         val day = LocalDate.of(2026, 6, 10)
@@ -87,7 +90,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `tapping an empty day registers six days`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
 
         vm.onDayTapped(day(6, 10))
 
@@ -97,7 +100,7 @@ class CalendarViewModelTest {
     @Test
     fun `the fill adapts to the mean of finished records`() = runTest {
         historyRepository.add(day(5, 1), day(5, 4), today) // 4 days
-        val vm = viewModel()
+        val vm = editingViewModel()
 
         vm.onDayTapped(day(6, 1))
 
@@ -106,7 +109,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `tapping a marked day ends the menstruation the day before`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
         vm.onDayTapped(day(6, 10))
 
         vm.onDayTapped(day(6, 13))
@@ -116,7 +119,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `tapping the start day deletes only after confirmation`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
         vm.onDayTapped(day(6, 10))
 
         vm.onDayTapped(day(6, 10))
@@ -130,7 +133,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `dismissing the delete keeps the record`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
         vm.onDayTapped(day(6, 10))
         vm.onDayTapped(day(6, 10))
 
@@ -142,7 +145,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `tapping an empty future day is rejected and stores nothing`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
 
         vm.onDayTapped(day(6, 20))
 
@@ -152,7 +155,7 @@ class CalendarViewModelTest {
 
     @Test
     fun `days auto-filled after today are shown as upcoming`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
 
         vm.onDayTapped(today)
 
@@ -178,11 +181,48 @@ class CalendarViewModelTest {
 
     @Test
     fun `write failure is reported`() = runTest {
-        val vm = viewModel()
+        val vm = editingViewModel()
         dao.failWrites = true
 
         vm.onDayTapped(day(6, 10))
 
         assertTrue(vm.uiState.value.writeFailed)
+    }
+
+    @Test
+    fun `a tap outside edit mode opens the day detail and changes nothing`() = runTest {
+        val vm = viewModel()
+
+        vm.onDayTapped(day(6, 10))
+
+        assertEquals(day(6, 10), vm.uiState.value.selectedDay)
+        assertTrue(stored().isEmpty())
+        assertEquals(false, vm.uiState.value.isEditing)
+    }
+
+    @Test
+    fun `edit mode is entered and left with the same button`() = runTest {
+        val vm = viewModel()
+
+        vm.onEditToggled()
+        assertTrue(vm.uiState.value.isEditing)
+        vm.onDayTapped(day(6, 10))
+        assertNull(vm.uiState.value.selectedDay)
+        assertEquals(1, stored().size)
+
+        vm.onEditToggled()
+        assertEquals(false, vm.uiState.value.isEditing)
+    }
+
+    @Test
+    fun `each day with cycle data knows its cycle day`() = runTest {
+        historyRepository.add(day(6, 1), day(6, 4), today)
+        val vm = viewModel()
+
+        val cycleDays = vm.uiState.value.cycleDaysFor(YearMonth.of(2026, 6))
+
+        assertEquals(1, cycleDays[day(6, 1)])
+        assertEquals(15, cycleDays[day(6, 15)])
+        assertNull(vm.uiState.value.cycleDaysFor(YearMonth.of(2026, 5))[day(5, 31)])
     }
 }
