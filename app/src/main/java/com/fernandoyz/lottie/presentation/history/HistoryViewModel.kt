@@ -11,6 +11,7 @@ import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.domain.CalendarEditing
 import com.fernandoyz.lottie.domain.CalendarMarks
 import com.fernandoyz.lottie.domain.CycleDayInfo
+import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.CycleHistory
 import com.fernandoyz.lottie.domain.CycleSummary
 import com.fernandoyz.lottie.domain.CyclePhases
@@ -79,6 +80,8 @@ data class HistoryUiState(
     fun ovulationDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.ovulationDays(month, records, estimate, today)
 
     fun fertileDaysFor(month: YearMonth): Set<LocalDate> = CyclePhases.fertileDays(month, records, estimate, today)
+
+    fun phasesFor(month: YearMonth): Map<LocalDate, CyclePhase> = CyclePhases.phasesFor(month, records, estimate, today)
 }
 
 /** Home and History: estimate, history and the Home main action (HOME §5). Other edits happen in the calendar. */

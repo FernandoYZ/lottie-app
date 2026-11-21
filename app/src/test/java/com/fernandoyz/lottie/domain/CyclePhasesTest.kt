@@ -87,4 +87,15 @@ class CyclePhasesTest {
         assertEquals(setOf(day(9, 7)), CyclePhases.ovulationDays(YearMonth.of(2026, 9), records, estimate, today))
         assertEquals((2..7).map { day(9, it) }.toSet() + day(9, 30), CyclePhases.fertileDays(YearMonth.of(2026, 9), records, estimate, today))
     }
+
+    @Test
+    fun `phases of a month are known for every day with cycle data`() {
+        val phases = CyclePhases.phasesFor(YearMonth.of(2026, 6), records, estimate, today)
+
+        assertEquals(CyclePhase.Menstrual, phases[day(6, 1)])
+        assertEquals(CyclePhase.Follicular, phases[day(6, 10)])
+        assertEquals(CyclePhase.Ovulation, phases[day(6, 15)])
+        assertEquals(CyclePhase.Luteal, phases[day(6, 20)])
+        assertEquals(emptyMap<LocalDate, CyclePhase>(), CyclePhases.phasesFor(YearMonth.of(2026, 5), records, estimate, today))
+    }
 }

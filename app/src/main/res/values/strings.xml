@@ -99,6 +99,9 @@
     <string name="calendar_day_fertile">%1$s, ventana fértil estimada</string>
     <string name="calendar_day_ovulation">%1$s, ovulación estimada</string>
     <string name="calendar_day_detail_action">Ver detalle del día</string>
+    <string name="calendar_legend_follicular">Fase folicular</string>
+    <string name="calendar_legend_luteal">Fase lútea</string>
+    <string name="calendar_day_phase">%1$s, fase %2$s</string>
     <string name="calendar_legend_logged">Día con registro diario</string>
     <string name="calendar_day_logged">%1$s, con registro diario</string>
     <string name="day_detail_log_action">Registrar este día</string>

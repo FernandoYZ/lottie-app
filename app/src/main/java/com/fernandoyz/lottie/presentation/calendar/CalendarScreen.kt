@@ -130,6 +130,7 @@ fun CalendarScreen(
             fertileDaysFor = uiState::fertileDaysFor,
             loggedDays = uiState.loggedDays,
             cycleDaysFor = uiState::cycleDaysFor,
+            phasesFor = uiState::phasesFor,
         )
 
         val message = uiState.rejection?.let { stringResource(it.messageRes()) }

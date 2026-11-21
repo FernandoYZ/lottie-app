@@ -43,7 +43,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.domain.CyclePhase
 import com.fernandoyz.lottie.domain.DayMark
+import com.fernandoyz.lottie.presentation.calendar.nameRes
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -82,6 +84,7 @@ fun MonthCalendar(
     fertileDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
     loggedDays: Set<LocalDate> = emptySet(),
     cycleDaysFor: (YearMonth) -> Map<LocalDate, Int> = { emptyMap() },
+    phasesFor: (YearMonth) -> Map<LocalDate, CyclePhase> = { emptyMap() },
 ) {
     val pagerState = rememberPagerState(initialPage = pageOf(initialMonth)) { PAGE_COUNT }
     val scope = rememberCoroutineScope()
@@ -118,6 +121,7 @@ fun MonthCalendar(
                 loggedDays = loggedDays,
                 today = today,
                 cycleDays = cycleDaysFor(month),
+                phases = phasesFor(month),
                 onDayClick = onDayClick,
                 onDayLongClick = onDayLongClick,
             )
@@ -139,8 +143,10 @@ fun WeekStrip(
     ovulationDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
     fertileDaysFor: (YearMonth) -> Set<LocalDate> = { emptySet() },
     loggedDays: Set<LocalDate> = emptySet(),
+    phasesFor: (YearMonth) -> Map<LocalDate, CyclePhase> = { emptyMap() },
 ) {
     val months = days.map(YearMonth::from).distinct()
+    val phases = months.flatMap { phasesFor(it).entries }.associate { it.key to it.value }
     val marks = months.flatMap { marksFor(it).entries }.associate { it.key to it.value }
     val ovulationDays = months.flatMap(ovulationDaysFor).toSet()
     val fertileDays = months.flatMap(fertileDaysFor).toSet()
@@ -157,6 +163,7 @@ fun WeekStrip(
                         isFertile = date in fertileDays,
                         isLogged = date in loggedDays,
                         cycleDay = null,
+                        phase = phases[date],
                         onClick = { onDayClick(date) },
                         onLongClick = null,
                     )
@@ -190,6 +197,7 @@ private fun MonthGrid(
     loggedDays: Set<LocalDate>,
     today: LocalDate,
     cycleDays: Map<LocalDate, Int>,
+    phases: Map<LocalDate, CyclePhase>,
     onDayClick: ((LocalDate) -> Unit)?,
     onDayLongClick: ((LocalDate) -> Unit)?,
 ) {
@@ -210,6 +218,7 @@ private fun MonthGrid(
                                 isFertile = date in fertileDays,
                                 isLogged = date in loggedDays,
                                 cycleDay = cycleDays[date],
+                                phase = phases[date],
                                 onClick = onDayClick?.let { click -> { click(date) } },
                                 onLongClick = onDayLongClick?.let { longClick -> { longClick(date) } },
                             )
@@ -231,6 +240,7 @@ private fun DayCell(
     isFertile: Boolean,
     isLogged: Boolean,
     cycleDay: Int?,
+    phase: CyclePhase?,
     onClick: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
 ) {
@@ -246,7 +256,12 @@ private fun DayCell(
         isFertile -> stringResource(R.string.calendar_day_fertile, markDescription)
         else -> markDescription
     }
-    val loggedDescription = if (isLogged) stringResource(R.string.calendar_day_logged, phaseDescription) else phaseDescription
+    // Follicular and luteal are spoken too, so the colour is not the only cue (PHASE_COLORS §2).
+    val spokenPhase = when (phase) {
+        CyclePhase.Follicular, CyclePhase.Luteal -> stringResource(R.string.calendar_day_phase, phaseDescription, stringResource(phase.nameRes()).lowercase())
+        else -> phaseDescription
+    }
+    val loggedDescription = if (isLogged) stringResource(R.string.calendar_day_logged, spokenPhase) else spokenPhase
     val description = if (isToday) stringResource(R.string.calendar_day_today, loggedDescription) else loggedDescription
     val fertileBackground = MaterialTheme.colorScheme.tertiaryContainer
     val detailLabel = stringResource(R.string.calendar_day_detail_action)
@@ -254,7 +269,7 @@ private fun DayCell(
     val textColor = when (mark) {
         DayMark.Registered -> MaterialTheme.colorScheme.onPrimary
         DayMark.Upcoming -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> Color.Unspecified
+        else -> phase?.let { phaseColor(it) } ?: Color.Unspecified
     }
     Box(
         modifier = Modifier
@@ -312,6 +327,15 @@ private fun DayCell(
     }
 }
 
+/** Day-number colour per phase (PHASE_COLORS §1); menstrual days keep their own mark. Theme colours until the design stage. */
+@Composable
+private fun phaseColor(phase: CyclePhase): Color = when (phase) {
+    CyclePhase.Follicular -> MaterialTheme.colorScheme.secondary
+    CyclePhase.Ovulation -> MaterialTheme.colorScheme.tertiary
+    CyclePhase.Luteal -> MaterialTheme.colorScheme.primary
+    CyclePhase.Menstrual -> Color.Unspecified
+}
+
 @Composable
 private fun Dot(color: Color) {
     Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
@@ -332,12 +356,14 @@ fun CalendarLegend(modifier: Modifier = Modifier, showEstimated: Boolean = true)
         LegendRow(mark = DayMark.Upcoming, label = stringResource(R.string.calendar_legend_upcoming))
         if (showEstimated) {
             LegendRow(mark = DayMark.Estimated, label = stringResource(R.string.calendar_legend_estimated))
+            PhaseLegendRow(CyclePhase.Follicular, stringResource(R.string.calendar_legend_follicular))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
                     Box(modifier = Modifier.size(6.dp).background(MaterialTheme.colorScheme.tertiary, CircleShape))
                 }
                 Text(text = stringResource(R.string.calendar_legend_ovulation), style = MaterialTheme.typography.bodyMedium)
             }
+            PhaseLegendRow(CyclePhase.Luteal, stringResource(R.string.calendar_legend_luteal))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(modifier = Modifier.size(18.dp).background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape))
                 Text(text = stringResource(R.string.calendar_legend_fertile), style = MaterialTheme.typography.bodyMedium)
@@ -349,6 +375,17 @@ fun CalendarLegend(modifier: Modifier = Modifier, showEstimated: Boolean = true)
                 Text(text = stringResource(R.string.calendar_legend_logged), style = MaterialTheme.typography.bodyMedium)
             }
         }
+    }
+}
+
+/** A sample day number in the phase colour (PHASE_COLORS §2). */
+@Composable
+private fun PhaseLegendRow(phase: CyclePhase, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+            Text(text = "15", color = phaseColor(phase), style = MaterialTheme.typography.labelMedium)
+        }
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

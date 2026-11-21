@@ -67,6 +67,12 @@ object CyclePhases {
         )
     }
 
+    /** Phase of each day of [month] with cycle data, for the phase colours (PHASE_COLORS §1). */
+    fun phasesFor(month: YearMonth, records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): Map<LocalDate, CyclePhase> =
+        (1..month.lengthOfMonth()).map(month::atDay)
+            .mapNotNull { date -> dayInfo(date, records, estimate, today)?.phase?.let { date to it } }
+            .toMap()
+
     /** Estimated ovulation days shown on the calendar: real cycles plus the estimated ones of the next 12 months. */
     fun ovulationDays(month: YearMonth, records: List<MenstruationRecord>, estimate: PeriodEstimate?, today: LocalDate): Set<LocalDate> =
         calendarCycles(records, estimate, today).mapNotNull { it.ovulation }.filter { YearMonth.from(it) == month }.toSet()

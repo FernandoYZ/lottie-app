@@ -168,6 +168,7 @@ private fun HomeContent(
             ovulationDaysFor = uiState::ovulationDaysFor,
             fertileDaysFor = uiState::fertileDaysFor,
             loggedDays = uiState.logs.keys,
+            phasesFor = uiState::phasesFor,
             modifier = Modifier.fillMaxWidth(),
         )
 
