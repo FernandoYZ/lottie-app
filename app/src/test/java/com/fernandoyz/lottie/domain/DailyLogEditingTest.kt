@@ -118,7 +118,7 @@ class DailyLogEditingTest {
         assertEquals(ParsedValue.Valid(200), DailyLogEditing.parseWeight("20"))
         assertEquals(ParsedValue.Valid(3000), DailyLogEditing.parseWeight("300"))
         assertEquals(ParsedValue.Valid(null), DailyLogEditing.parseWeight("  "))
-        listOf("19,9", "300,1", "65,45", "abc", "-70").forEach { assertEquals(it, ParsedValue.Invalid, DailyLogEditing.parseWeight(it)) }
+        listOf("19,9", "300,1", "65,45", "abc", "-70", "1e2", "+70", ",5").forEach { assertEquals(it, ParsedValue.Invalid, DailyLogEditing.parseWeight(it)) }
     }
 
     @Test

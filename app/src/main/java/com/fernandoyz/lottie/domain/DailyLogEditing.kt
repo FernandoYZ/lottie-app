@@ -47,6 +47,8 @@ object DailyLogEditing {
     // DAILY_LOG §8.
     const val WATER_STEP_ML = 250
 
+    private val PLAIN_NUMBER = Regex("""\d+([.,]\d*)?""")
+
     fun togglePregnancyTest(log: DailyLog, test: PregnancyTest) = log.copy(pregnancyTest = if (log.pregnancyTest == test) null else test)
 
     fun toggleOvulationTest(log: DailyLog, test: OvulationTest) = log.copy(ovulationTest = if (log.ovulationTest == test) null else test)
@@ -65,7 +67,9 @@ object DailyLogEditing {
     private fun parse(text: String, decimals: Int, min: BigDecimal, max: BigDecimal): ParsedValue {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return ParsedValue.Valid(null)
-        val number = trimmed.replace(',', '.').toBigDecimalOrNull() ?: return ParsedValue.Invalid
+        // Plain digits only: toBigDecimalOrNull alone would also take "1e2" or "+70".
+        if (!PLAIN_NUMBER.matches(trimmed)) return ParsedValue.Invalid
+        val number = trimmed.replace(',', '.').toBigDecimal()
         if (number.stripTrailingZeros().scale() > decimals || number < min || number > max) return ParsedValue.Invalid
         return ParsedValue.Valid(number.movePointRight(decimals).intValueExact())
     }
