@@ -2,6 +2,7 @@ package com.fernandoyz.lottie.presentation.history
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -40,14 +41,14 @@ import java.time.LocalDate
 
 /** Stateful container: connects [HistoryViewModel] with the stateless [HistoryScreen]. */
 @Composable
-fun HistoryRoute(viewModel: HistoryViewModel, modifier: Modifier = Modifier) {
+fun HistoryRoute(viewModel: HistoryViewModel, onOpenCycle: (LocalDate) -> Unit, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    HistoryScreen(uiState = uiState, onRetry = viewModel::retry, modifier = modifier)
+    HistoryScreen(uiState = uiState, onRetry = viewModel::retry, onOpenCycle = onOpenCycle, modifier = modifier)
 }
 
 /** History tab: cycle averages and one row per cycle, newest first (STATISTICS §2-§3). */
 @Composable
-fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifier = Modifier, onOpenCycle: (LocalDate) -> Unit = {}) {
     when {
         uiState.isLoading -> Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -81,7 +82,7 @@ fun HistoryScreen(uiState: HistoryUiState, onRetry: () -> Unit, modifier: Modifi
                     uiState.averageCycleLengthDays ?: 1,
                 )
                 items(uiState.cycles, key = { it.start.toEpochDay() }) { cycle ->
-                    CycleRow(cycle = cycle, longestDays = longest, meanDays = uiState.averageCycleLengthDays)
+                    CycleRow(cycle = cycle, longestDays = longest, meanDays = uiState.averageCycleLengthDays, onClick = { onOpenCycle(cycle.start) })
                     HorizontalDivider()
                 }
             }
@@ -107,11 +108,12 @@ private fun Summary(averageCycle: Int?, averagePeriod: Int?) {
 
 /** One cycle with its dates, menstruation and a bar to compare lengths (STATISTICS §3). */
 @Composable
-private fun CycleRow(cycle: CycleSummary, longestDays: Int, meanDays: Int?) {
+private fun CycleRow(cycle: CycleSummary, longestDays: Int, meanDays: Int?, onClick: () -> Unit) {
     val start = formatShortDate(cycle.start)
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClickLabel = stringResource(R.string.summary_open), onClick = onClick)
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {

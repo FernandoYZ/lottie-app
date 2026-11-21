@@ -44,6 +44,7 @@ import java.time.LocalDate
 import com.fernandoyz.lottie.data.repository.SetupRepository
 import com.fernandoyz.lottie.presentation.calendar.CalendarRoute
 import com.fernandoyz.lottie.presentation.calendar.CalendarViewModel
+import com.fernandoyz.lottie.presentation.history.CycleSummaryRoute
 import com.fernandoyz.lottie.presentation.history.HistoryRoute
 import com.fernandoyz.lottie.presentation.history.HistoryViewModel
 import com.fernandoyz.lottie.presentation.home.HomeRoute
@@ -70,6 +71,11 @@ object LottieDestinations {
     const val DAILY_LOG = "daily_log/{$DAILY_LOG_EPOCH_DAY}"
 
     fun dailyLog(date: LocalDate) = "daily_log/${date.toEpochDay()}"
+
+    const val CYCLE_START_EPOCH_DAY = "cycleStart"
+    const val CYCLE_SUMMARY = "cycle_summary/{$CYCLE_START_EPOCH_DAY}"
+
+    fun cycleSummary(start: LocalDate) = "cycle_summary/${start.toEpochDay()}"
 }
 
 /** Top-level tabs of the bottom bar (bottom-bar S1). Welcome and setup stay outside it. */
@@ -174,7 +180,21 @@ fun LottieNavHost(
                 )
             }
             composable(LottieDestinations.HISTORY) {
-                HistoryRoute(viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)))
+                HistoryRoute(
+                    viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
+                    onOpenCycle = { start -> navController.navigate(LottieDestinations.cycleSummary(start)) },
+                )
+            }
+            // CYCLE_SUMMARY §2.
+            composable(
+                route = LottieDestinations.CYCLE_SUMMARY,
+                arguments = listOf(navArgument(LottieDestinations.CYCLE_START_EPOCH_DAY) { type = NavType.LongType }),
+            ) { entry ->
+                CycleSummaryRoute(
+                    viewModel = viewModel(factory = HistoryViewModel.factory(historyRepository, setupRepository, dailyLogRepository, clock)),
+                    initialStart = LocalDate.ofEpochDay(entry.arguments?.getLong(LottieDestinations.CYCLE_START_EPOCH_DAY) ?: 0L),
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(LottieDestinations.SETTINGS) {
                 SettingsRoute(

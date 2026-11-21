@@ -2,6 +2,7 @@ package com.fernandoyz.lottie.presentation.dailylog
 
 import androidx.annotation.StringRes
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.domain.ExtraOption
 import com.fernandoyz.lottie.domain.model.Digestion
 import com.fernandoyz.lottie.domain.model.Discharge
 import com.fernandoyz.lottie.domain.model.MenstrualFlow
@@ -116,3 +117,19 @@ fun OvulationTest.labelRes(): Int = when (this) {
 /** Stored integer with [decimals] implied decimals, written the Spanish way: 1250, 3 → "1,25". */
 fun formatDecimal(value: Int, decimals: Int): String =
     BigDecimal(value).movePointLeft(decimals).stripTrailingZeros().toPlainString().replace('.', ',')
+
+/** Visible name of any option counted by the cycle summary (CYCLE_SUMMARY §2). */
+@StringRes
+fun optionLabelRes(option: Any): Int = when (option) {
+    is MenstrualFlow -> option.labelRes()
+    ExtraOption.Clots -> R.string.flow_clots
+    is Mood -> option.labelRes()
+    is Symptom -> option.labelRes()
+    is Discharge -> option.labelRes()
+    is Digestion -> option.labelRes()
+    is SexActivity -> option.labelRes()
+    is SexDrive -> option.labelRes()
+    is PregnancyTest -> option.labelRes()
+    is OvulationTest -> option.labelRes()
+    else -> error("No label for $option")
+}

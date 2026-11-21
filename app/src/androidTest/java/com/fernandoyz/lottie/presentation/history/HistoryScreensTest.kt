@@ -7,7 +7,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.fernandoyz.lottie.R
+import com.fernandoyz.lottie.domain.SummaryRange
+import com.fernandoyz.lottie.domain.model.DailyLog
 import com.fernandoyz.lottie.domain.model.MenstruationRecord
+import com.fernandoyz.lottie.domain.model.Symptom
 import com.fernandoyz.lottie.presentation.common.formatShortDate
 import com.fernandoyz.lottie.ui.theme.LottieTheme
 import org.junit.Rule
@@ -58,5 +61,25 @@ class HistoryScreensTest {
         setHistory(HistoryUiState(today = today, isLoading = false))
 
         composeRule.onNodeWithText(text(R.string.history_empty)).assertIsDisplayed()
+    }
+
+    @Test
+    fun cycleSummaryShowsLoggedDaysAndTheMostLoggedOption() {
+        val log = DailyLog(LocalDate.of(2026, 5, 15), symptoms = setOf(Symptom.Cramps), moodLevel = 4)
+        composeRule.setContent {
+            LottieTheme {
+                CycleSummaryScreen(
+                    uiState = HistoryUiState(today = today, isLoading = false, records = listOf(current, closed), logs = mapOf(log.date to log)),
+                    start = closed.startDate,
+                    range = SummaryRange.WholeCycle,
+                    onCycleChanged = {},
+                    onRangeChanged = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(context.resources.getQuantityString(R.plurals.summary_logged_days, 31, 1, 31)).assertIsDisplayed()
+        composeRule.onNodeWithText(context.getString(R.string.summary_top_item, text(R.string.symptom_cramps), 1)).assertExists()
     }
 }

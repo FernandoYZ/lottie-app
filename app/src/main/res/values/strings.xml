@@ -169,6 +169,23 @@
     <string name="daily_log_discharge">Flujo vaginal</string>
     <string name="daily_log_digestion">Digestión</string>
     <string name="daily_log_sex">Sexo y deseo sexual</string>
+    <!-- CYCLE_SUMMARY §2 -->
+    <string name="summary_open">Ver resumen del ciclo</string>
+    <string name="summary_previous_cycle">Ciclo anterior</string>
+    <string name="summary_next_cycle">Ciclo siguiente</string>
+    <string name="summary_tab_whole">Todo el ciclo</string>
+    <plurals name="summary_logged_days">
+        <item quantity="one">Registraste %1$d de %2$d día</item>
+        <item quantity="other">Registraste %1$d de %2$d días</item>
+    </plurals>
+    <string name="summary_empty">Todavía no hay registros en estos días.</string>
+    <string name="summary_levels_title">Ánimo y energía</string>
+    <string name="summary_levels_empty">No registraste ánimo ni energía en estos días.</string>
+    <string name="summary_spoken_mood">ánimo %1$s</string>
+    <string name="summary_spoken_energy">energía %1$s</string>
+    <string name="summary_top_title">Lo más registrado</string>
+    <string name="summary_top_empty">No marcaste ninguna opción en estos días.</string>
+    <string name="summary_top_item">%1$s ×%2$d</string>
     <!-- CYCLE_SUMMARY §1 -->
     <string name="daily_log_levels">¿Cómo te sientes?</string>
     <string name="daily_log_mood_level">Ánimo</string>
