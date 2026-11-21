@@ -19,3 +19,9 @@ registro.csv
 
 # Editor settings
 .vscode/
+
+# Private: product docs, AI work logs and tooling (kept locally, never published)
+/Lottie-docs/
+/odd/
+/.atl/
+Screenshot_*.jpg
